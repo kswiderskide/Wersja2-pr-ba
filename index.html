@@ -2,32 +2,85 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Portal Kierowcy</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body { background: #1a1a1a; color: #fff; font-family: sans-serif; text-align: center; padding: 20px; }
-    h1 { color: #ccff33; }
-    .btn { background: #ccff33; color: #000; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    * { -webkit-touch-callout: none; user-select: none; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; height: 100vh; overflow: hidden; }
+    .card { height: 100vh; width: 100vw; padding: 10px; position: relative; overflow-y: auto; }
+    .wake-lock-container { position: absolute; top: 15px; left: 15px; cursor: pointer; color: #777; }
+    .wake-lock-active { color: #ccff33 !important; }
+    .btn-main { width: 100%; padding: 18px; margin: 5px 0; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; background: #ccff33; color: #000; text-transform: uppercase; }
+    select { width: 100%; padding: 18px; margin-bottom: 20px; border-radius: 8px; background: #eee; font-weight: bold; text-align-last: center; }
+    #ui-view { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #262626; padding: 10px; flex-direction: column; }
+    .view-table { width: 100%; border-collapse: collapse; }
+    .view-table td { padding: 18px 8px; border-bottom: 1px solid #444; color: #fff; }
+    .cell-time { text-align: center; font-weight: 900; color: #ccff33; width: 25%; }
   </style>
 </head>
 <body>
-  <h1>PORTAL KIEROWCY</h1>
-  <button class="btn" onclick="toggleWakeLock()">ŻARÓWKA (WAKE LOCK)</button>
-  <div id="app">Ładowanie danych...</div>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
+<div class="card">
+  <div class="wake-lock-container" id="wakeLockBtn" onclick="toggleWakeLock()">
+      <i id="bulb-icon" class="far fa-lightbulb" style="font-size: 26px;"></i>
+      <div id="bulb-text" style="font-size: 10px;">OFF</div>
+  </div>
 
-    function toggleWakeLock() {
-      // Logika żarówki z Twojego poprzedniego kodu
-      alert("Funkcja Wake Lock aktywna");
+  <div id="ui-select">
+    <h2 style="text-align:center; color:#ccff33; margin: 60px 0 30px 0;">PORTAL KIEROWCY</h2>
+    <select id="routeSelect"><option value="" disabled selected>WYBIERZ TRASĘ...</option></select>
+    <button class="btn-main" onclick="showSchedule()">POKAŻ HARMONOGRAM</button>
+  </div> 
+
+  <div id="ui-view">
+    <button onclick="document.getElementById('ui-view').style.display='none'" style="margin-bottom:10px; padding:10px;">WRÓĆ</button>
+    <div id="table-output"></div>
+  </div>
+</div> 
+
+<script>
+  // WLEJ TUTAJ SWÓJ LINK WEB APP Z GOOGLE APPS SCRIPT
+  const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
+  let db = [];
+
+  // Ładowanie danych
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      db = data;
+      const rSel = document.getElementById('routeSelect');
+      const routes = [...new Set(data.slice(1).map(r => r[0]))];
+      routes.forEach(r => rSel.add(new Option(r, r)));
+    });
+
+  function showSchedule() {
+    const r = document.getElementById('routeSelect').value;
+    if(!r) return;
+    let html = '<table class="view-table"><tbody>';
+    db.slice(1).filter(row => row[0] === r).forEach(row => {
+      html += `<tr><td>${row[1]}</td><td class="cell-time">${row[2]}</td></tr>`;
+    });
+    document.getElementById('table-output').innerHTML = html + "</tbody></table>";
+    document.getElementById('ui-view').style.display = "flex";
+  }
+
+  // Wake Lock
+  let wakeLock = null;
+  async function toggleWakeLock() {
+    if (!wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      document.getElementById('bulb-icon').className = 'fas fa-lightbulb';
+      document.getElementById('wakeLockBtn').classList.add('wake-lock-active');
+      document.getElementById('bulb-text').innerText = 'ON';
+    } else {
+      await wakeLock.release();
+      wakeLock = null;
+      document.getElementById('bulb-icon').className = 'far fa-lightbulb';
+      document.getElementById('wakeLockBtn').classList.remove('wake-lock-active');
+      document.getElementById('bulb-text').innerText = 'OFF';
     }
-
-    async function loadData() {
-      // Tutaj będzie fetch do API_URL
-      document.getElementById('app').innerText = "Dane pobrane pomyślnie.";
-    }
-    loadData();
-  </script>
+  }
+</script>
 </body>
 </html>
