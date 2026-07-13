@@ -98,7 +98,7 @@
             letter-spacing: 1px;
         }
 
-        /* Struktura główna */
+        /* Kontener główny */
         .container {
             padding: 15px;
             max-width: 800px;
@@ -113,10 +113,10 @@
             border: 1px solid var(--border-color);
         }
 
-        /* UKŁAD PIONOWY - OKNA POD SOBĄ */
+        /* FILTRY W UKŁADZIE PIONOWYM */
         .filters-container {
             display: flex;
-            flex-direction: column; /* Wymuszenie układu jeden pod drugim */
+            flex-direction: column;
             gap: 15px;
         }
 
@@ -137,7 +137,7 @@
             background-color: #262626;
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            padding: 14px; /* Większy, wygodniejszy margines do klikania na tablecie */
+            padding: 14px;
             font-size: 1.1rem;
             border-radius: 6px;
             outline: none;
@@ -178,7 +178,7 @@
             letter-spacing: 1px;
         }
 
-        /* Statusy przystanków */
+        /* Statusy wierszy tabeli */
         .current-stop {
             background-color: rgba(204, 255, 51, 0.15);
             color: var(--accent-color);
@@ -285,7 +285,7 @@
         let wakeLock = null;
         let globalData = []; 
 
-        // Funkcja żarówki (Wake Lock)
+        // Wake Lock API
         async function toggleWakeLock() {
             const btn = document.getElementById('wakeLockBtn');
             const statusTxt = document.getElementById('wakeLockStatus');
@@ -316,7 +316,7 @@
             }
         }
 
-        // Funkcja zębatki
+        // Zębatka
         function toggleEditMode() {
             const adminPanel = document.getElementById('adminPanel');
             adminPanel.classList.toggle('open');
@@ -324,34 +324,45 @@
             cog.style.transform = adminPanel.classList.contains('open') ? 'rotate(90deg)' : 'rotate(0deg)';
         }
 
-        // Pobieranie danych zgodne z Twoją strukturą tablicy w Google Sheets
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        });
+
+        // Pobieranie danych
         async function zaciagnijDane() {
             try {
                 const response = await fetch(SCRIPT_URL);
-                const data = await response.json();
+                let data = await response.json();
                 
+                // Dostosowanie do struktury zwracanej przez Twój Apps Script
+                if (data.odjazdy) data = data.odjazdy;
+
                 localStorage.setItem('cachedRozklad', JSON.stringify(data));
                 globalData = data;
                 initApp();
             } catch (error) {
+                console.error("Błąd sieci, próba cache...", error);
                 const cached = localStorage.getItem('cachedRozklad');
                 if (cached) {
                     globalData = JSON.parse(cached);
                     initApp();
                 } else {
-                    document.getElementById('loading').innerText = "Brak połączenia.";
+                    document.getElementById('loading').innerText = "Brak połączenia internetowego.";
                 }
             }
         }
 
-        // Wypełnianie listy wyboru tras (wiersz[0] z Twojego arkusza)
+        // Wypełnianie listy tras (wiersz[0])
         function initApp() {
-            if(document.getElementById('loading')) document.getElementById('loading').style.display = 'none';
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.style.display = 'none';
 
             const routeSelect = document.getElementById('routeSelect');
             const zapamietanaTrasa = routeSelect.value;
 
-            // Wyciągamy unikalne trasy z indeksu 0 (pierwsza kolumna w arkuszu)
+            // Filtrujemy puste wartości
             const unikalneTrasy = [...new Set(globalData.map(wiersz => wiersz[0]))].filter(Boolean);
             
             routeSelect.innerHTML = '<option value="">-- Wybierz trasę --</option>';
@@ -370,7 +381,7 @@
             }
         }
 
-        // Ładowanie godzin przypisanych do danej trasy (wiersz[2] z Twojego arkusza)
+        // Wypełnianie godzin (wiersz[2]) dla wybranej trasy
         function updateTimeSelect() {
             const selectedRoute = document.getElementById('routeSelect').value;
             const timeSelect = document.getElementById('timeSelect');
@@ -381,7 +392,6 @@
                 return;
             }
 
-            // Filtrujemy wiersze dla wybranej trasy i pobieramy unikalne godziny rozpoczęcia kursu
             const wierszeTrasy = globalData.filter(wiersz => wiersz[0] === selectedRoute);
             const unikalneGodziny = [...new Set(wierszeTrasy.map(wiersz => wiersz[2]))].filter(Boolean).sort();
 
@@ -396,7 +406,7 @@
             filterData();
         }
 
-        // Wyświetlanie przefiltrowanej tabeli dla kierowcy
+        // Filtrowanie i rysowanie tabeli
         function filterData() {
             const selectedRoute = document.getElementById('routeSelect').value;
             const selectedTime = document.getElementById('timeSelect').value;
@@ -405,11 +415,10 @@
             kontener.innerHTML = '';
 
             if (!selectedRoute) {
-                kontener.innerHTML = '<div class="card" style="text-align:center; color: var(--text-muted);">Proszę wybrać trasę.</div>';
+                kontener.innerHTML = '<div class="card" style="text-align:center; color: var(--text-muted);">Proszę wybrać trasę z listy.</div>';
                 return;
             }
 
-            // Mapowanie i dopasowanie: wiersz[0] = Trasa, wiersz[2] = Godzina startu/kursu
             let przefiltrowane = globalData.filter(wiersz => wiersz[0] === selectedRoute);
 
             if (selectedTime) {
@@ -441,20 +450,18 @@
             
             const tbody = document.createElement('tbody');
             const teraz = new Date();
-            const aktualneMinuty = teraz.getHours() * 60 + voterMin = teraz.getMinutes();
+            const aktualneMinutySystemu = teraz.getHours() * 60 + teraz.getMinutes();
             let znalezionoBiezacy = false;
 
-            // Sortowanie po godzinie (wiersz[2])
             przefiltrowane.sort((a, b) => a[2].localeCompare(b[2]));
 
             przefiltrowane.forEach((wiersz) => {
                 const tr = document.createElement('tr');
-                const godzinaWpisu = wiersz[2]; // Godzina z arkusza
-                const przystanekNazwa = wiersz[1]; // Przystanek z arkusza
+                const godzinaWpisu = wiersz[2]; 
+                const przystanekNazwa = wiersz[1]; 
 
                 const [godz, min] = godzinaWpisu.split(':').map(Number);
                 const minutRozkladu = godz * 60 + min;
-                const aktualneMinutySystemu = teraz.getHours() * 60 + teraz.getMinutes();
 
                 let stanKlasa = 'next-stop';
                 if (minutRozkladu < aktualneMinutySystemu) {
