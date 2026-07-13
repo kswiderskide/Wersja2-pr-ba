@@ -12,7 +12,7 @@
       --text: #ffffff;
       --text-muted: #aaaaaa;
       --bulb-on: #ffcc00; 
-      --bulb-off: #aaaaaa; 
+      --bulb-off: #aaaaaa;
     }
     body {
       background-color: var(--bg-color);
@@ -189,7 +189,7 @@
     }
     .stop-time { 
       font-size: 14px; 
-      color: var(--accent); 
+      color: var(--accent);
       font-weight: bold;
       margin-left: auto;
       white-space: nowrap;
@@ -218,7 +218,8 @@
     .modal {
       display: none;
       position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: rgba(0,0,0,0.8);
       justify-content: center;
       align-items: center;
@@ -285,7 +286,7 @@
   <div id="passwordModal" class="modal">
     <div class="modal-content">
       <h3>Panel Administratora</h3>
-      <input type="password" id="adminPassword" placeholder="Wpisz hasło">
+      <input type="password" id="adminPassword" placeholder="Wpisz hasło" onkeydown="if(event.key === 'Enter') checkPassword()">
       <button class="btn-submit" style="margin: 10px 0 0 0;" onclick="checkPassword()">Zaloguj</button>
       <button class="btn-submit" style="background:#333; color:#fff; margin-top:5px;" onclick="closePasswordModal()">Anuluj</button>
     </div>
@@ -296,8 +297,8 @@
 
     let headers = [];
     let rawData = [];
-    let MAPS_API_KEY = ""; // Zmienna przechowująca pobrany klucz API
     let clockInterval = null;
+    let wakeLock = null;
 
     document.addEventListener("DOMContentLoaded", function() {
       fetch(API_URL)
@@ -308,10 +309,8 @@
             return;
           }
           
-          // MAPOWANIE Z NOWEJ STRUKTURY ZWROTNEJ Z SERWERA GAS
           headers = data.rows[0]; 
           rawData = data.rows.slice(1); 
-          MAPS_API_KEY = data.googleMapsApiKey || ""; // Zapisanie klucza API do zmiennej
           
           populateRoutes();
         })
@@ -319,6 +318,17 @@
           alert("Błąd połączenia sieciowego: " + err);
           console.error(err);
         });
+    });
+
+    // Automatyczne wznawianie blokady wygaszania po powrocie na kartę z aplikacji/tła
+    document.addEventListener('visibilitychange', async () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.log("Błąd wznawiania Wake Lock na widoczności karty: ", err.message);
+        }
+      }
     });
 
     function updateClock() {
@@ -364,7 +374,6 @@
 
       hourSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
       hourSelect.disabled = false;
-
       let activeHours = new Set();
 
       rawData.forEach(row => {
@@ -397,7 +406,6 @@
     function showScheduleView() {
       const selectedRoute = document.getElementById("routeSelect").value;
       const FascynujacaGodzina = document.getElementById("hourSelect").value;
-      
       document.getElementById("filter-box").style.display = "none";
       document.getElementById("schedule-view").style.display = "block";
       
@@ -418,66 +426,85 @@
       document.getElementById("filter-box").style.display = "block";
     }
 
-    // Wykorzystanie klucza API w linkach nawigacji (opcjonalne użycie oficjalnego API zamiast linków uniwersalnych)
     function renderSchedule(selectedRoute, selectedHour) {
       const container = document.getElementById("schedule-container");
       container.innerHTML = "";
 
       let hourColumnIndex = headers.findIndex(h => h && h.trim() === selectedHour.trim());
-
       if (hourColumnIndex === -1) {
         container.innerHTML = "<p style='color:red; text-align:center;'>Błąd: Nie znaleziono kolumny w bazie dla wybranego kursu.</p>";
         return;
       }
 
+      // 1. Agregujemy przystanki dla tego konkretnego kursu
+      let validStops = [];
       rawData.forEach(row => {
         if (row[0] === selectedRoute) {
           let stopTime = row[hourColumnIndex];
+          let coords = row[2]; // Surowe dane liczbowe (koordynaty)
+          let stopName = row[1];
           
           if (stopTime && stopTime.trim() !== "" && stopTime.trim() !== "-") {
-            const stopName = row[1]; 
-            let mapUrl = row[3];    
-            const coords = row[2];  
-
-            let singlePinUrl = "";
-            if (coords && coords.trim() !== "") {
-              // Jeżeli klucz API jest dostępny, możemy użyć struktury z kluczem, w przeciwnym wypadku standardowy link
-              if (MAPS_API_KEY) {
-                singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}&key=${MAPS_API_KEY}`;
-              } else {
-                singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
-              }
-            }
-
-            if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
-              mapUrl = singlePinUrl;
-            }
-
-            const card = document.createElement("div");
-            card.className = "stop-card";
-            
-            card.innerHTML = `
-              <div class="stop-main-info">
-                <span class="stop-name">${stopName}</span>
-                ${singlePinUrl ? `
-                  <a href="${singlePinUrl}" target="_blank" class="pin-link" title="Pokaż punkt">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-130-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ff3333"/>
-                    </svg>
-                  </a>` : ''}
-              </div>
-              <span class="stop-time">Odjazd: ${stopTime}</span>
-              ${mapUrl ? `
-                <a href="${mapUrl}" target="_blank" class="map-link" title="Nawiguj do trasy">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 15c1.38 0 2.5-1.12 2.5-2.5S5.38 10 4 10s-2.5 1.12-2.5 2.5S2.62 15 4 15zm16-5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S21.38 10 20 10zm-6 8c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zM6.5 12.5h5v-3h-5v3zm7.5-6h3.5v-3H14v3zm-4.5 10v3h4v-3h-4z" fill="#00ffcc"/>
-                    <path d="M19 3.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 6.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#00ffcc"/>
-                  </svg>
-                </a>` : ''}
-            `;
-            container.appendChild(card);
+            validStops.push({
+              name: stopName,
+              time: stopTime,
+              coords: coords ? coords.trim() : ""
+            });
           }
         }
+      });
+
+      // 2. Generujemy widok kart na podstawie odczytanych koordynatów
+      validStops.forEach((stop, index) => {
+        let singlePinUrl = "";
+        let dynamicMapUrl = "";
+
+        if (stop.coords) {
+          // Pinezka punktowa przekazująca koordynaty z tabeli
+          singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}`;
+
+          // Wycinamy listę punktów od tego klikniętego przystanku aż do końca tablicy
+          let remainingStops = validStops.slice(index).filter(s => s.coords !== "");
+
+          if (remainingStops.length > 0) {
+            let origin = remainingStops[0].coords; 
+            let destination = remainingStops[remainingStops.length - 1].coords; 
+            
+            // Punkty pośrednie występujące pomiędzy startem a metą sekwencji
+            let waypoints = remainingStops.slice(1, -1).map(s => s.coords);
+
+            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+            
+            if (waypoints.length > 0) {
+              dynamicMapUrl += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
+            }
+          }
+        }
+
+        const card = document.createElement("div");
+        card.className = "stop-card";
+        card.innerHTML = `
+          <div class="stop-main-info">
+            <span class="stop-name">${stop.name}</span>
+            ${singlePinUrl ?
+            `
+              <a href="${singlePinUrl}" target="_blank" class="pin-link" title="Pokaż punkt">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13 0-3.13-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ff3333"/>
+                </svg>
+              </a>` : ''}
+          </div>
+          <span class="stop-time">Odjazd: ${stop.time}</span>
+          ${dynamicMapUrl ?
+          `
+            <a href="${dynamicMapUrl}" target="_blank" class="map-link" title="Nawiguj do trasy (oraz kolejnych)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M4 15c1.38 0 2.5-1.12 2.5-2.5S5.38 10 4 10s-2.5 1.12-2.5 2.5S2.62 15 4 15zm16-5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S21.38 10 20 10zm-6 8c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zM6.5 12.5h5v-3h-5v3zm7.5-6h3.5v-3H14v3zm-4.5 10v3h4v-3h-4z" fill="#00ffcc"/>
+                <path d="M19 3.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 6.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#00ffcc"/>
+              </svg>
+            </a>` : ''}
+        `;
+        container.appendChild(card);
       });
 
       if (container.children.length === 0) {
@@ -485,11 +512,9 @@
       }
     }
 
-    let wakeLock = null;
     async function toggleWakeLock() {
       const btn = document.getElementById("wakeLockBtn");
       const statusText = document.getElementById("wakeLockStatus");
-      
       if ('wakeLock' in navigator) {
         try {
           if (!wakeLock) {
@@ -510,8 +535,15 @@
       }
     }
 
-    function openPasswordModal() { document.getElementById("passwordModal").style.display = "flex"; }
-    function closePasswordModal() { document.getElementById("passwordModal").style.display = "none"; }
+    function openPasswordModal() { 
+      document.getElementById("passwordModal").style.display = "flex";
+      document.getElementById("adminPassword").focus();
+    }
+    
+    function closePasswordModal() { 
+      document.getElementById("adminPassword").value = ""; // Czyszczenie hasła dla bezpieczeństwa
+      document.getElementById("passwordModal").style.display = "none";
+    }
     
     function checkPassword() {
       const pass = document.getElementById("adminPassword").value;
@@ -525,9 +557,13 @@
             closePasswordModal();
           } else {
             alert(res.message || "Błędne hasło dostępu");
+            document.getElementById("adminPassword").value = "";
           }
         })
-        .catch(err => alert("Błąd autoryzacji serwera: " + err));
+        .catch(err => {
+          alert("Błąd autoryzacji serwera: " + err);
+          document.getElementById("adminPassword").value = "";
+        });
     }
   </script>
 </body>
