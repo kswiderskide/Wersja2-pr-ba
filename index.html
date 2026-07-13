@@ -57,7 +57,7 @@
       border: none !important;
     }
     
-    /* Kontrola wyglądu wektorowej żarówki i tekstu */
+    /* Pełna kontrola nad wyglądem żarówki wektorowej */
     .wake-lock-off svg {
       fill: var(--bulb-off) !important;
       filter: none !important;
@@ -68,16 +68,16 @@
     
     .wake-lock-on svg {
       fill: var(--bulb-on) !important;
-      /* Efekt rozświetlenia żarówki */
+      /* Silny neonowy efekt rozświetlenia żarówki */
       filter: drop-shadow(0px 0px 8px var(--bulb-on)) drop-shadow(0px 0px 3px #ffffff) !important;
     }
     .wake-lock-on .status-txt {
       color: var(--bulb-on) !important;
     }
     
-    .gear-icon { 
+    .toolbox-icon { 
       color: var(--text-muted); 
-      font-size: 20px;
+      font-size: 22px;
     }
 
     .form-group {
@@ -212,7 +212,7 @@
       <span class="status-txt" style="font-size: 11px; transition: color 0.3s ease;">EKRAN: <span id="wakeLockStatus">OFF</span></span>
     </button>
     <h1>Portal Kierowcy</h1>
-    <button class="icon-btn gear-icon" onclick="openPasswordModal()">⚙️</button>
+    <button class="icon-btn toolbox-icon" onclick="openPasswordModal()">🧰</button>
   </div>
 
   <div id="filter-box">
@@ -257,7 +257,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       if (API_URL === "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec") {
-        alert("Błąd: Wklej swój aktualny adres URL z GAS w linii 161 kodu pliku index.html!");
+        alert("Błąd: Wklej swój aktualny adres URL z GAS w linii 158 kodu pliku index.html!");
         return;
       }
 
@@ -380,6 +380,7 @@
             let mapUrl = row[3];    
             const coords = row[2];  
 
+            // NAPRAWIONE: Poprawiona składnia zmiennej i domknięcie nawiasu
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
               mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
             }
@@ -403,7 +404,6 @@
       }
     }
 
-    // Dynamiczny Wake Lock z obsługą stanów wektora SVG i tekstu (ON/OFF)
     let wakeLock = null;
     async function toggleWakeLock() {
       const btn = document.getElementById("wakeLockBtn");
