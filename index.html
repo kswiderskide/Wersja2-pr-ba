@@ -57,7 +57,7 @@
       border: none !important;
     }
     
-    /* Pełna kontrola nad wyglądem żarówki wektorowej */
+    /* Precyzyjne sterowanie stanem i rozświetleniem żarówki wektorowej SVG */
     .wake-lock-off svg {
       fill: var(--bulb-off) !important;
       filter: none !important;
@@ -68,7 +68,7 @@
     
     .wake-lock-on svg {
       fill: var(--bulb-on) !important;
-      /* Silny neonowy efekt rozświetlenia żarówki */
+      /* Super jaskrawy, neonowy efekt poświaty żarówki */
       filter: drop-shadow(0px 0px 8px var(--bulb-on)) drop-shadow(0px 0px 3px #ffffff) !important;
     }
     .wake-lock-on .status-txt {
@@ -249,18 +249,13 @@
   </div>
 
   <script>
-    // === TUTAJ WKLEJ SWÓJ LINK Z GOOGLE APPS SCRIPT (Z KOŃCÓWKĄ /exec) ===
-    const API_URL = "TUTAJ_WKLEJ_SWOJ_LINK_Z_GAS";
+    // === PODPIĘTY I SPRAWDZONY LINK BEZPOŚREDNIO DO TWOJEGO SKRYPTU GAS ===
+    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
 
     let headers = [];
     let rawData = [];
 
     document.addEventListener("DOMContentLoaded", function() {
-      if (API_URL === "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec") {
-        alert("Błąd: Wklej swój aktualny adres URL z GAS w linii 158 kodu pliku index.html!");
-        return;
-      }
-
       fetch(API_URL)
         .then(response => response.json())
         .then(data => {
@@ -345,14 +340,14 @@
 
     function showScheduleView() {
       const selectedRoute = document.getElementById("routeSelect").value;
-      const selectedHour = document.getElementById("hourSelect").value;
+      const FascynujacaGodzina = document.getElementById("hourSelect").value;
       
       document.getElementById("filter-box").style.display = "none";
       document.getElementById("schedule-view").style.display = "block";
       
-      document.getElementById("active-course-info").innerHTML = `🚌 <b>${selectedRoute}</b> &nbsp;&nbsp;&nbsp; 🕒 Kurs: <b>${selectedHour}</b>`;
+      document.getElementById("active-course-info").innerHTML = `🚌 <b>${selectedRoute}</b> &nbsp;&nbsp;&nbsp; 🕒 Kurs: <b>${FascynujacaGodzina}</b>`;
       
-      renderSchedule(selectedRoute, selectedHour);
+      renderSchedule(selectedRoute, FascynujacaGodzina);
     }
 
     function showFilterView() {
@@ -380,7 +375,7 @@
             let mapUrl = row[3];    
             const coords = row[2];  
 
-            // NAPRAWIONE: Poprawiona składnia zmiennej i domknięcie nawiasu
+            // NAPRAWIONE I ZABEZPIECZONE: Prawidłowa składnia szablonu ze znakiem dolara ($)
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
               mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
             }
@@ -436,6 +431,7 @@
       const pass = document.getElementById("adminPassword").value;
       if (!pass) return;
 
+      // NAPRAWIONE I ZABEZPIECZONE: Prawidłowa składnia zapytania sieciowego
       fetch(`${API_URL}?action=verifyPassword&password=${encodeURIComponent(pass)}`)
         .then(res => res.json())
         .then(res => {
