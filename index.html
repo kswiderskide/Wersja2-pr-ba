@@ -54,11 +54,6 @@
       -webkit-tap-highlight-color: transparent;
       outline: none;
     }
-    .icon-btn:hover, .icon-btn:active, .icon-btn:focus {
-      background: transparent !important;
-      box-shadow: none !important;
-      border: none !important;
-    }
     
     .wake-lock-off svg { fill: var(--bulb-off) !important; }
     .wake-lock-off .status-txt { color: var(--bulb-off) !important; }
@@ -83,7 +78,6 @@
     }
     .btn-submit:disabled { background-color: #333; color: #777; cursor: not-allowed; }
 
-    /* Główny zaktualizowany blok informacyjny */
     .info-bar {
       max-width: 500px; margin: 0 auto 15px auto; background-color: #1a1a1a;
       padding: 15px; border-radius: 6px; text-align: center;
@@ -97,17 +91,6 @@
       font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; margin-top: 5px;
     }
 
-    /* Wyskakujący punkt - Dynamiczny Alert na samej górze */
-    .popup-alert {
-      background-color: #242424; border: 2px solid var(--accent); border-radius: 6px;
-      padding: 15px; margin: 0 auto 15px auto; max-width: 500px; box-sizing: border-box;
-    }
-    .popup-title { font-size: 12px; color: var(--accent); text-transform: uppercase; font-weight: bold; margin-bottom: 5px; text-align: center; }
-    .popup-stop-name { font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 8px; color: #fff; }
-    .popup-eta-status { font-size: 15px; font-weight: bold; text-align: center; padding: 6px; border-radius: 4px; }
-    .popup-eta-status.on-time { background-color: var(--accent-dim); color: var(--accent); }
-    .popup-eta-status.delayed { background-color: var(--danger-dim); color: var(--danger); }
-
     .nav-bar { width: 100%; max-width: 500px; margin: 0 auto 10px auto; }
     .btn-back {
       padding: 10px 18px; background-color: #333; color: #fff;
@@ -120,8 +103,10 @@
       padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
     }
+    /* Podświetlenie zbliżającego się przystanku bez wyskakujących okienek */
     .stop-card.active-stop {
       background-color: var(--accent-dim); border-left: 6px solid var(--accent);
+      border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); border-right: 1px solid var(--accent);
     }
     .stop-card.passed-stop { opacity: 0.4; }
     
@@ -131,7 +116,7 @@
     .stop-timing-block { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; text-align: right; }
     .stop-time { font-size: 14px; color: var(--accent); font-weight: bold; }
     
-    /* Powiększona plakietka ETA wewnątrz karty */
+    /* Wyraźniejsza plakietka ETA wewnątrz karty */
     .eta-badge { font-size: 12px; margin-top: 4px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
     .eta-badge.on-time { background-color: var(--accent-dim); color: var(--accent); }
     .eta-badge.delayed { background-color: var(--danger-dim); color: var(--danger); }
@@ -187,12 +172,6 @@
     <div class="info-bar">
       <div id="active-route-name" class="route-title"></div>
       <div id="liveClock" class="live-clock">00:00:00</div>
-    </div>
-
-    <div id="popup-alert-container" class="popup-alert" style="display: none;">
-      <div class="popup-title">🔔 Wyskakujący punkt (Następny przystanek)</div>
-      <div id="popup-stop-name" class="popup-stop-name">--</div>
-      <div id="popup-eta-status" class="popup-eta-status">Obliczanie pozycji...</div>
     </div>
 
     <div id="schedule-container"></div>
@@ -251,7 +230,7 @@
           (position) => {
             currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
           },
-          (error) => { console.warn("GPS wyłączony lub brak zgody: ", error.message); },
+          (error) => { console.warn("GPS nieaktywny: ", error.message); },
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
       }
@@ -318,7 +297,6 @@
       
       renderSchedule();
       
-      // Natychmiastowe zapytanie o asystenta ETA, ponawiane bezpiecznie co 30 sekund
       triggerBackendETACalculation();
       etaRequestInterval = setInterval(triggerBackendETACalculation, 30000);
     }
@@ -328,7 +306,6 @@
       if (etaRequestInterval) { clearInterval(etaRequestInterval); etaRequestInterval = null; }
       document.getElementById("schedule-view").style.display = "none";
       document.getElementById("filter-box").style.display = "block";
-      document.getElementById("popup-alert-container").style.display = "none";
     }
 
     function renderSchedule() {
@@ -346,7 +323,7 @@
       });
 
       validStops.forEach((stop, index) => {
-        let singlePinUrl = stop.coords ? `http://maps.google.com/?q=${encodeURIComponent(stop.coords)}` : "";
+        let singlePinUrl = stop.coords ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}` : "";
         let dynamicMapUrl = "";
 
         if (stop.coords) {
@@ -392,11 +369,9 @@
       });
     }
 
-    // Bezpieczna komunikacja z backendem skryptu Google w celu wyliczenia ETA (Brak błędów CORS!)
     function triggerBackendETACalculation() {
       if (validStops.length === 0) return;
       
-      // Przygotowanie paczki danych do wysłania na serwer
       let payload = {
         route: selectedRouteGlobal,
         hour: selectedHourGlobal,
@@ -412,7 +387,6 @@
           
           let activeIdx = report.activeIndex;
 
-          // 1. Aktualizacja klas wizualnych na liście przystanków (podświetlenie / ściemnienie)
           validStops.forEach((_, idx) => {
             const card = document.getElementById(`stop-card-${idx}`);
             const badge = document.getElementById(`badge-${idx}`);
@@ -425,7 +399,8 @@
               card.className = "stop-card active-stop";
               if (report.badgeText) {
                 badge.style.display = "inline-block";
-                badge.textContent = report.badgeText;
+                // Korzystamy z tekstu statusu bezpośrednio w plaku na karcie przystanku
+                badge.textContent = report.durationOnly ? `Za ${report.durationOnly} | ${report.isDelayed ? 'Opóźn.' : 'OK'}` : report.badgeText;
                 badge.className = `eta-badge ${report.isDelayed ? 'delayed' : 'on-time'}`;
               }
             } else {
@@ -433,22 +408,8 @@
               badge.style.display = "none";
             }
           });
-
-          // 2. Aktualizacja i pokazanie górnego „Wyskakującego punktu” (Alertu)
-          const alertContainer = document.getElementById("popup-alert-container");
-          const alertName = document.getElementById("popup-stop-name");
-          const alertStatus = document.getElementById("popup-eta-status");
-
-          if (activeIdx >= 0 && activeIdx < validStops.length) {
-            alertContainer.style.display = "block";
-            alertName.textContent = validStops[activeIdx].name;
-            alertStatus.textContent = report.alertText || "W trasie...";
-            alertStatus.className = `popup-eta-status ${report.isDelayed ? 'delayed' : 'on-time'}`;
-          } else {
-            alertContainer.style.display = "none";
-          }
         })
-        .catch(err => console.error("Błąd pobierania raportu asystenta: ", err));
+        .catch(err => console.error("Błąd asystenta: ", err));
     }
 
     async function toggleWakeLock() {
@@ -465,7 +426,7 @@
           }
         } catch (err) { console.log(err.message); }
       } else {
-        alert("Blokada wygaszania nie jest wspierana na tym urządzeniu.");
+        alert("Blokada wygaszania nie jest wspierana.");
       }
     }
 
