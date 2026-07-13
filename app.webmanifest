@@ -1,0 +1,19 @@
+{
+  "id": "pl.ceva.portal.kierowcy",
+  "short_name": "TRASY",
+  "name": "TRASY",
+  "description": "System tras i harmonogramów",
+  "icons": [
+    {
+      "src": "Tyliszczak.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#ccff33",
+  "prefer_related_applications": false
+}
