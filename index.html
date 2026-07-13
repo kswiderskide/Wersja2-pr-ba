@@ -209,6 +209,7 @@
             text-align: left;
             border-bottom: 1px solid var(--border-color);
             font-size: 1.1rem;
+            transition: all 0.3s ease;
         }
 
         th {
@@ -237,27 +238,37 @@
             background-color: rgba(204, 255, 51, 0.25);
         }
 
-        /* Statusy przystanków na trasie */
+        /* NOWE STYLE STATUSÓW PRZYSTANKÓW (ZGODNE Z PROŚBĄ) */
+        
+        /* 1. AKTUALNY PRZYSTANEK: Lekkie seledynowe podświetlenie tła i jasny tekst */
         .current-stop {
-            background-color: rgba(204, 255, 51, 0.15);
-            color: var(--accent-color);
+            background-color: rgba(204, 255, 51, 0.12); /* Lekkie podświetlenie tła */
+            color: var(--accent-color); /* Seledynowy jaskrawy tekst */
+            font-weight: bold;
+        }
+        
+        .current-stop .map-btn {
+            background-color: rgba(204, 255, 51, 0.25);
             font-weight: bold;
         }
 
+        /* 2. PRZYSZŁE PRZYSTANKI: Standardowe, białe wpisy */
         .next-stop {
             color: #ffffff;
         }
 
+        /* 3. MINIONE PRZYSTANKI: Brak przekreślenia, zrobione na bledsze (opacity) */
         .passed-stop {
-            color: #555555;
-            text-decoration: line-through;
+            color: #ffffff;
+            opacity: 0.35; /* Sprawia, że cały wiersz jest mocno bledszy i przygaszony */
         }
 
         .passed-stop .map-btn {
-            color: #555555;
+            opacity: 0.5;
+            color: var(--text-muted);
             border-color: #333;
             background: none;
-            pointer-events: none;
+            pointer-events: none; /* Blokada klikania minionych map */
         }
 
         .time-col {
@@ -370,7 +381,7 @@
 
         let wakeLock = null;
         let globalData = []; 
-        let currentPrzystankiList = []; // Lista aktualnie wyświetlanych przystanków dla aktywnego kursu
+        let currentPrzystankiList = []; 
 
         // Wake Lock API (Żarówka)
         async function toggleWakeLock() {
@@ -515,7 +526,7 @@
             });
         }
 
-        // Pokaż Harmonogram (Zamiana okien)
+        // Pokaż Harmonogram
         function showSchedule() {
             const selectedRoute = document.getElementById('routeSelect').value;
             const colIndex = parseInt(document.getElementById('timeSelect').value);
@@ -564,13 +575,13 @@
                         currentPrzystankiList.push({
                             godzina: godzinaWpisu,
                             przystanek: wiersz[1], // Kolumna B
-                            koordynaty: wiersz[2]  // Kolumna C (Koordynaty)
+                            koordynaty: wiersz[2]  // Kolumna C
                         });
                     }
                 }
             }
 
-            // Sortowanie chronologiczne odjazdów w kursie
+            // Sortowanie chronologiczne
             currentPrzystankiList.sort((a, b) => {
                 return a.godzina.replace('.', ':').localeCompare(b.godzina.replace('.', ':'));
             });
@@ -586,11 +597,12 @@
                 const [godz, min] = znormalizowanyCzas.split(':').map(Number);
                 const minutRozkladu = (godz * 60) + min;
 
+                // LOGIKA PRZYDZIELANIA STATUSÓW (BEZ PRZEKREŚLANIA)
                 let stanKlasa = 'next-stop';
                 if (minutRozkladu < aktualneMinutySystemu) {
-                    stanKlasa = 'passed-stop';
+                    stanKlasa = 'passed-stop'; // Zrobi się bledszy w CSS
                 } else if (!znalezionoBiezacy && minutRozkladu >= aktualneMinutySystemu) {
-                    stanKlasa = 'current-stop';
+                    stanKlasa = 'current-stop'; // Podświetli się lekko na seledynowo
                     znalezionoBiezacy = true;
                 }
 
@@ -607,16 +619,13 @@
             });
         }
 
-        // AUTOMATYCZNE GENEROWANIE LINKU MULTI-STOP NA BAZIE KLIKNIĘTEGO INDEKSU
+        // Automatyczne generowanie linku nawigacji multi-stop
         function navFromHere(clickedIndex) {
-            // 1. Punkt startowy to lokalizacja urządzenia kierowcy (My Location)
             let baseLink = "https://www.google.com/maps/dir/?api=1&origin=My+Location";
             
-            // 2. Punkt docelowy (destination) to przystanek, przy którym kliknięto ikonę
             const targetStop = currentPrzystankiList[clickedIndex];
             baseLink += `&destination=${encodeURIComponent(targetStop.koordynaty.trim())}`;
             
-            // 3. Zbieramy wszystkie KOLEJNE punkty (od clickedIndex + 1 do końca trasy) jako Waypoints
             let waypoints = [];
             for (let i = clickedIndex + 1; i < currentPrzystankiList.length; i++) {
                 const stop = currentPrzystankiList[i];
@@ -625,12 +634,10 @@
                 }
             }
             
-            // Jeśli są jakieś następne przystanki, dołączamy je do linku rozdzielone pionową kreską '|'
             if (waypoints.length > 0) {
                 baseLink += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
             }
 
-            // Otwarcie gotowej trasy bezpośrednio w aplikacji Google Maps
             window.open(baseLink, '_blank');
         }
 
