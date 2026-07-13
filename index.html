@@ -2,11 +2,16 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Kierowcy</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
-        select, button { width: 100%; padding: 15px; margin: 5px 0; font-size: 16px; }
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; margin: 0; }
         .card { background: #262626; padding: 20px; border-radius: 8px; }
+        select, button { width: 100%; padding: 15px; margin: 5px 0; font-size: 16px; border-radius: 5px; border: none; }
+        button { background: #ccff33; color: #000; font-weight: bold; cursor: pointer; }
+        #table-output { margin-top: 20px; }
+        table { width: 100%; color: white; border-collapse: collapse; }
+        td { padding: 10px; border-bottom: 1px solid #444; }
     </style>
 </head>
 <body>
@@ -22,16 +27,15 @@
     <button onclick="showSchedule()">POKAŻ HARMONOGRAM</button>
 </div>
 
-<div id="table-output" style="margin-top:20px;"></div>
+<div id="table-output"></div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwy10Lf3qFb4ebHe-bEVQCcJ4ZYSUHbs4FfZ4XSfcvDckqh8aXH88gK62HX-fIVxliw/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbwy10Lf3qFb4ebHe-bEVQCcJ4ZYSUHbs4FfZ4XSfcvDckqh8aXH88gK62HX-fIVxliw/exec"; // Wklej link z Wdrożenia
     let fullDb = [];
 
     async function init() {
         const res = await fetch(API_URL + "?action=getData");
         fullDb = await res.json();
-        // Zakładamy, że trasy są w kolumnie 0 (indeks 0)
         const routes = [...new Set(fullDb.slice(1).map(r => r[0]))];
         const rSel = document.getElementById('routeSelect');
         routes.forEach(r => rSel.add(new Option(r, r)));
@@ -48,9 +52,10 @@
     function showSchedule() {
         const route = document.getElementById('routeSelect').value;
         const hour = document.getElementById('hourSelect').value;
+        if (!route || !hour) return alert("Wybierz trasę i godzinę!");
+
         const filtered = fullDb.filter(r => r[0] === route && r[1] === hour);
-        
-        let html = '<table border="1" style="width:100%; color:white;">';
+        let html = '<table>';
         filtered.forEach(row => {
             html += `<tr><td>${row[2]}</td><td>${row[3]}</td></tr>`;
         });
