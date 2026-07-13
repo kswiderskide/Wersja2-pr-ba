@@ -375,7 +375,7 @@
             let mapUrl = row[3];    
             const coords = row[2];  
 
-            // NAPRAWIONE I ZABEZPIECZONE: Prawidłowa składnia szablonu ze znakiem dolara ($)
+            // NAPRAWIONE I ZABEZPIECZONE: Poprawna składnia szablonu template string ze znakiem $
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
               mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
             }
@@ -431,7 +431,7 @@
       const pass = document.getElementById("adminPassword").value;
       if (!pass) return;
 
-      // NAPRAWIONE I ZABEZPIECZONE: Prawidłowa składnia zapytania sieciowego
+      // NAPRAWIONE I ZABEZPIECZONE: Prawidłowe zastosowanie backticks dla dynamicznego linku URL
       fetch(`${API_URL}?action=verifyPassword&password=${encodeURIComponent(pass)}`)
         .then(res => res.json())
         .then(res => {
