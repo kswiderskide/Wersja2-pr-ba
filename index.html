@@ -201,12 +201,12 @@
 </div>
 
 <script>
-    // Wpisz tutaj swój prawdziwy identyfikator wdrożenia Web App z Google Apps Script
+    // Tutaj należy podmienić adres na właściwy URL wdrożenia Google Apps Script Web App
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_T5c4mC7M7XJzXh7Zp3mZl-V8-XYZ_REAL_ID/exec"; 
 
     let globalData = [];
 
-    // Po załadowaniu strony pobieramy dostępne konfiguracje tras i godzin
+    // Pobranie konfiguracji po załadowaniu drzewa DOM
     window.addEventListener('DOMContentLoaded', async () => {
         showLoading(true);
         try {
@@ -295,7 +295,7 @@
 
             // Komórka 1: Nazwa przystanku
             const tdName = document.createElement('td');
-            tdName.textContent = stop.name || row[1]; // Dostosowane do struktury JSON/Array
+            tdName.textContent = stop.name || '';
             tr.appendChild(tdName);
 
             // Komórka 2: Godzina odjazdu
@@ -311,7 +311,7 @@
             const coords = stop.coordinates ? stop.coordinates.trim() : '';
 
             if (coords && coords !== '-') {
-                // Ikona 1: MAPA (Pełna trasa od obecnego punktu do pętli końcowej)
+                // Ikona 1: MAPA (Wyznaczanie trasy)
                 const btnMap = document.createElement('button');
                 btnMap.className = 'btn-map';
                 btnMap.title = "Nawiguj trasą do końca kursu";
@@ -323,12 +323,11 @@
                     </svg>
                 `;
                 btnMap.onclick = () => {
-                    // Wyciągamy tablicę samych współrzędnych dla całego kursu od tego miejsca w dół
                     const allCoords = stops.map(s => s.coordinates);
                     navFromHere(index, allCoords);
                 };
 
-                // Ikona 2: PINESKA (Minimalistyczna odwrócona łezka - tylko ten punkt)
+                // Ikona 2: PINESKA (Odwrócona łezka - tylko ten jeden punkt)
                 const btnPin = document.createElement('button');
                 btnPin.className = 'btn-pin';
                 btnPin.title = "Pokaż tylko ten przystanek";
@@ -356,7 +355,7 @@
         document.getElementById('scheduleTable').style.display = 'table';
     }
 
-    // Funkcja wyznaczania TRASY (od aktualnej lokalizacji przez kliknięty punkt do końca)
+    // Funkcja wyznaczania TRASY za pomocą oficjalnego Google Maps Directions API URL
     function navFromHere(clickedIndex, allCoordinatesArray) {
         const remainingCoordinates = allCoordinatesArray
             .slice(clickedIndex)
@@ -385,14 +384,14 @@
         window.open(googleMapsUrl, '_blank');
     }
 
-    // NOWA FUNKCJA: Stawia TYLKO jedną pineskę bez żadnego routingu
+    // Funkcja stawiająca wyłącznie pojedynczą szpilkę w Google Maps Search API URL
     function openSingleStop(coordinates) {
         const cleanCoords = coordinates.trim();
         const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanCoords)}`;
         window.open(googleMapsUrl, '_blank');
     }
 
-    // Rejestracja Service Workera dla wsparcia PWA
+    // Obsługa PWA Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js').catch(err => {
