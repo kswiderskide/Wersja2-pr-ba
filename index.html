@@ -54,13 +54,16 @@
             letter-spacing: 0.5px;
         }
 
-        /* Usunięcie efektu brzydkich kwadratów / podświetleń dotykowych */
+        /* Pełne usunięcie efektu brzydkich kwadratów / podświetleń dotykowych */
+        .wake-lock-btn, .settings-btn, .map-btn, .pin-btn, .back-btn, .btn-primary {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
         .wake-lock-btn, .settings-btn {
             background: none !important;
             border: none !important;
             outline: none !important;
             box-shadow: none !important;
-            -webkit-tap-highlight-color: transparent !important;
             -webkit-appearance: none;
             appearance: none;
             cursor: pointer;
@@ -77,7 +80,6 @@
             background-color: transparent !important;
             outline: none !important;
             box-shadow: none !important;
-            -webkit-tap-highlight-color: transparent !important;
         }
 
         .wake-lock-btn:active, .settings-btn:active {
@@ -150,6 +152,7 @@
             cursor: pointer;
             transition: background-color 0.2s, transform 0.1s;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            outline: none;
         }
 
         .btn-primary:disabled {
@@ -181,12 +184,32 @@
             padding: 14px 12px;
             border-bottom: 1px solid #2d2d2d;
             font-size: 15px;
+            vertical-align: middle;
         }
 
         th {
             background-color: #252525;
             color: #aaa;
             font-weight: 500;
+        }
+
+        /* Przyciski akcji w tabeli (Mapy) */
+        .actions-cell {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .map-btn, .pin-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
         }
 
         /* System podświetlania przystanków */
@@ -221,6 +244,7 @@
             font-size: 14px;
             cursor: pointer;
             margin-bottom: 15px;
+            outline: none;
         }
 
         /* Widoczność sekcji */
@@ -302,6 +326,7 @@
                     <tr>
                         <th>Przystanek</th>
                         <th>Plan</th>
+                        <th style="text-align: right;">Nawigacja</th>
                     </tr>
                 </thead>
                 <tbody id="scheduleBody"></tbody>
@@ -314,40 +339,61 @@
     </div>
 
     <script>
-        // Globalna zmienna na dane z bazy
+        // ADRES URL TWOJEGO INTERFEJSU GOOGLE APPS SCRIPT
+        const API_URL = "https://script.google.com/macros/s/AKfycbz_Z-r8_z3Kz1G_qVv_G7Yp89wXasfA-E_G/exec"; // Tutaj wklej swój rzeczywisty URL z GAS jeśli jest inny
+
         let rawData = [];
         let wakeLock = null;
 
-        // Indeksy kolumn oparte o strukturę tabeli bazy danych
         const COL_ROUTE = 0; // Kolumna A
         const COL_STOP = 1;  // Kolumna B
+        const COL_COORDS = 2; // Kolumna C (Koordynaty GPS)
+        const COL_FULL_MAP = 3; // Kolumna D (Pełna wielopunktowa trasa)
 
-        // Dynamiczne wykrywanie dostępnych kolumn czasowych (od E wzwyż)
+        // Nagłówki godzin (od kolumny E wzwyż)
         let godzinyKolumn = [];
 
-        // Inicjalizacja pobierania danych bezpośrednio z GAS po uruchomieniu strony
         window.onload = function() {
-            google.script.run
-                .withSuccessHandler(function(response) {
-                    rawData = response.data;
-                    godzinyKolumn = response.headers;
-                    
-                    document.getElementById('loadingMessage').classList.add('hidden');
-                    document.getElementById('formContent').classList.remove('hidden');
-                    populateRoutes();
-                })
-                .withFailureHandler(function(err) {
-                    document.getElementById('loadingMessage').innerText = "Błąd pobierania danych: " + err;
-                })
-                .getSheetData();
-
-            // Interwał sprawdzania statusu przystanków (czas rzeczywisty w tabeli)
+            loadData();
             setInterval(updateStopHighlighting, 30000);
         };
 
-        // Tworzenie unikalnej listy tras w menu rozwijanym
+        // Pobieranie danych z GAS za pomocą tradycyjnego fetch z obsługą localStorage (offline)
+        function loadData() {
+            fetch(API_URL)
+                .then(response => response.json())
+                .then(data => {
+                    rawData = data.data;
+                    godzinyKolumn = data.headers;
+                    
+                    // Zapis dla działania offline
+                    localStorage.setItem('driver_schedule_data', JSON.stringify(data));
+
+                    initApp();
+                })
+                .catch(err => {
+                    console.warn("Błąd sieci, próba załadowania danych z pamięci podręcznej...", err);
+                    const cached = localStorage.getItem('driver_schedule_data');
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        rawData = parsed.data;
+                        godzinyKolumn = parsed.headers;
+                        initApp();
+                    } else {
+                        document.getElementById('loadingMessage').innerText = "Błąd pobierania danych i brak kopii offline.";
+                    }
+                });
+        }
+
+        function initApp() {
+            document.getElementById('loadingMessage').classList.add('hidden');
+            document.getElementById('formContent').classList.remove('hidden');
+            populateRoutes();
+        }
+
         function populateRoutes() {
             const routeSelect = document.getElementById('routeSelect');
+            routeSelect.innerHTML = '<option value="">-- Wybierz linię --</option>';
             const uniqueRoutes = [...new Set(rawData.map(row => row[COL_ROUTE]))].filter(Boolean);
 
             uniqueRoutes.forEach(route => {
@@ -358,7 +404,6 @@
             });
         }
 
-        // Reakcja na zmianę trasy - odblokowanie i załadowanie godzin
         function onRouteChanged() {
             const routeSelect = document.getElementById('routeSelect');
             const hourSelect = document.getElementById('hourSelect');
@@ -370,13 +415,11 @@
 
             if (!routeSelect.value) return;
 
-            // Filtrujemy wiersze dla wybranej trasy
             const filteredRows = rawData.filter(row => row[COL_ROUTE] === routeSelect.value);
 
-            // Sprawdzamy, które kolumny godzinowe mają przypisane czasy (brak "-")
             let availableHours = [];
             godzinyKolumn.forEach((hour, index) => {
-                const globalColumnIndex = index + 4; // Godziny zaczynają się od kolumny E (indeks 4)
+                const globalColumnIndex = index + 4; 
                 const hasTimes = filteredRows.some(row => row[globalColumnIndex] && row[globalColumnIndex] !== '-');
                 if (hasTimes) {
                     availableHours.push(hour);
@@ -401,7 +444,6 @@
             document.getElementById('showScheduleBtn').disabled = !hourSelect.value;
         }
 
-        // Generowanie i wyświetlanie tabeli harmonogramu
         function showSchedule() {
             const selectedRoute = document.getElementById('routeSelect').value;
             const selectedHour = document.getElementById('hourSelect').value;
@@ -413,10 +455,10 @@
 
             filteredRows.forEach(row => {
                 const timeValue = row[columnIndex];
-                if (!timeValue || timeValue === '-') return; // Pomijamy puste/omijane przystanki
+                if (!timeValue || timeValue === '-') return;
 
                 const tr = document.createElement('tr');
-                tr.dataset.time = timeValue; // Przechowujemy surowy czas do walidacji podświetlenia
+                tr.dataset.time = timeValue;
 
                 const tdStop = document.createElement('td');
                 tdStop.textContent = row[COL_STOP];
@@ -424,15 +466,49 @@
                 const tdTime = document.createElement('td');
                 tdTime.textContent = timeValue;
 
+                // Cele akcji: Nawigacja po trasie oraz pojedyncza szpilka GPS
+                const tdActions = document.createElement('td');
+                tdActions.className = 'actions-cell';
+
+                const coords = row[COL_COORDS] || '';
+                const fullMapUrl = row[COL_FULL_MAP] || '';
+
+                // Ikona mapy (Trasa wielopunktowa z kolumny D)
+                const mapBtn = document.createElement('button');
+                mapBtn.className = 'map-btn';
+                mapBtn.innerHTML = '🗺️';
+                mapBtn.title = 'Uruchom pełną trasę';
+                if (fullMapUrl && fullMapUrl.startsWith('http')) {
+                    mapBtn.onclick = () => window.open(fullMapUrl, '_blank');
+                } else {
+                    mapBtn.disabled = true;
+                    mapBtn.style.opacity = '0.2';
+                }
+
+                // Ikona pineski (Pojedynczy punkt z współrzędnych z kolumny C)
+                const pinBtn = document.createElement('button');
+                pinBtn.className = 'pin-btn';
+                pinBtn.innerHTML = '📍';
+                pinBtn.title = 'Pokaż pojedynczy punkt';
+                if (coords) {
+                    pinBtn.onclick = () => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords)}`, '_blank');
+                } else {
+                    pinBtn.disabled = true;
+                    pinBtn.style.opacity = '0.2';
+                }
+
+                tdActions.appendChild(mapBtn);
+                tdActions.appendChild(pinBtn);
+
                 tr.appendChild(tdStop);
                 tr.appendChild(tdTime);
+                tr.appendChild(tdActions);
                 tbody.appendChild(tr);
             });
 
             document.getElementById('setupScreen').classList.add('hidden');
             document.getElementById('scheduleScreen').classList.remove('hidden');
             
-            // Uruchomienie natychmiastowego podświetlenia po wygenerowaniu tabeli
             updateStopHighlighting();
         }
 
@@ -441,7 +517,6 @@
             document.getElementById('setupScreen').classList.remove('hidden');
         }
 
-        // Funkcja logiczna podświetlania obecnego i minionych przystanków
         function updateStopHighlighting() {
             const rows = document.querySelectorAll('#scheduleBody tr');
             if (rows.length === 0) return;
@@ -458,15 +533,13 @@
                 const [h, m] = timeStr.split(':').map(Number);
                 const stopMinutes = h * 60 + m;
 
-                // Usuwamy poprzednie klasy stylów przed ponowną kalkulacją
                 row.className = '';
 
                 if (currentMinutes >= stopMinutes) {
-                    currentStopIndex = index; // Potencjalnie ostatni miniony przystanek staje się "obecnym"
+                    currentStopIndex = index;
                 }
             });
 
-            // Nadawanie klas na podstawie wyznaczonego indeksu obecnego przystanku
             rows.forEach((row, index) => {
                 if (index < currentStopIndex) {
                     row.classList.add('passed-stop');
@@ -478,7 +551,6 @@
             });
         }
 
-        // Przełączanie blokady wygaszania ekranu (Wake Lock API)
         async function toggleWakeLock() {
             const statusLabel = document.getElementById('wakeLockStatus');
 
@@ -503,14 +575,13 @@
                         }
                     });
                 } else {
-                    alert("Twoja przeglądarka nie obsługuje blokady wygaszania ekranu.");
+                    alert("Wykryto brak obsługi Wake Lock API w przeglądarce.");
                 }
             } catch (err) {
                 console.error(`Błąd Wake Lock: ${err.message}`);
             }
         }
 
-        // Pokazywanie / Ukrywanie sekcji administracyjnej
         function toggleEditSection() {
             const editSec = document.getElementById('editSection');
             editSec.classList.toggle('hidden');
