@@ -128,7 +128,6 @@
       border-bottom: 2px solid var(--accent);
     }
 
-    /* NOWY UKŁAD PASKA NAWIGACJI (POWRÓT + ZEGAR) */
     .nav-bar {
       display: flex;
       justify-content: space-between;
@@ -155,38 +154,62 @@
       padding: 10px 14px;
       border-radius: 6px;
       border: 1px solid #333;
-      font-family: 'Courier New', Courier, monospace; /* Monospace ułatwia czytanie skaczących sekund */
+      font-family: 'Courier New', Courier, monospace;
     }
 
     #schedule-container {
       max-width: 500px;
       margin: 20px auto;
     }
+    
+    /* NOWY STYL KARTY PRZYSTANKU DOPASOWANY DO KOLEJNOŚCI */
     .stop-card {
       background-color: var(--card-bg);
       border-left: 4px solid var(--accent);
-      padding: 15px;
+      padding: 12px 15px;
       margin-bottom: 10px;
       border-radius: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
     }
-    .stop-info {
+    .stop-main-info {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex-grow: 1;
+      min-width: 0; /* Zabezpieczenie przed ucinaniem tekstu */
     }
-    .stop-name { font-size: 16px; font-weight: bold; }
-    .stop-time { font-size: 14px; color: var(--accent); margin-top: 4px; }
-    .map-link {
-      background-color: #333;
-      color: var(--accent);
-      text-decoration: none;
-      padding: 10px 16px;
-      border-radius: 4px;
-      font-size: 13px;
+    .stop-name { 
+      font-size: 15px; 
       font-weight: bold;
-      border: 1px solid var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stop-time { 
+      font-size: 14px; 
+      color: var(--accent); 
+      font-weight: bold;
+      margin-left: auto; /* Przesuwa godzinę do środka/prawa przed końcową ikoną trasy */
+      white-space: nowrap;
+      padding-right: 5px;
+    }
+    .pin-link, .map-link {
+      text-decoration: none;
+      font-size: 18px;
+      padding: 6px 10px;
+      background-color: #2b2b2b;
+      border-radius: 4px;
+      border: 1px solid #444;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pin-link:active, .map-link:active {
+      background-color: #444;
     }
 
     .modal {
@@ -290,7 +313,6 @@
         });
     });
 
-    // FUNKCJA OBSŁUGUJĄCA ZEGAR CZASU RZECZYWISTEGO
     function updateClock() {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
@@ -373,7 +395,6 @@
       
       document.getElementById("active-course-info").innerHTML = `🚌 <b>${selectedRoute}</b>     🕒 Kurs: <b>${FascynujacaGodzina}</b>`;
       
-      // Uruchomienie i natychmiastowe zsynchronizowanie zegara
       updateClock();
       clockInterval = setInterval(updateClock, 1000);
 
@@ -381,7 +402,6 @@
     }
 
     function showFilterView() {
-      // Wyłączenie działania zegara, gdy wracamy do filtrów (oszczędność baterii)
       if (clockInterval) {
         clearInterval(clockInterval);
         clockInterval = null;
@@ -410,18 +430,28 @@
             let mapUrl = row[3];    
             const coords = row[2];  
 
+            // Tworzenie linku dla pineski awaryjnej (tylko pojedyncza lokalizacja)
+            let singlePinUrl = "";
+            if (coords && coords.trim() !== "") {
+              singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
+            }
+
+            // Zapobieganie pustej trasie ogólnej
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
-              mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
+              mapUrl = singlePinUrl;
             }
 
             const card = document.createElement("div");
             card.className = "stop-card";
+            
+            // BUDOWANIE NOWEJ STRUKTURY KARTY WEDŁUG WYTYCZNYCH
             card.innerHTML = `
-              <div class="stop-info">
+              <div class="stop-main-info">
                 <span class="stop-name">${stopName}</span>
-                <span class="stop-time">Odjazd: ${stopTime}</span>
+                ${singlePinUrl ? `<a href="${singlePinUrl}" target="_blank" class="pin-link" title="Pokaż punkt">📍</a>` : ''}
               </div>
-              ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="map-link">MAPA</a>` : ''}
+              <span class="stop-time">Odjazd: ${stopTime}</span>
+              ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="map-link" title="Nawiguj do trasy">🗺️</a>` : ''}
             `;
             container.appendChild(card);
           }
