@@ -2,65 +2,62 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Kierowcy</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; }
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        select, button { width: 100%; padding: 15px; margin: 5px 0; font-size: 16px; }
         .card { background: #262626; padding: 20px; border-radius: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        td { padding: 12px; border-bottom: 1px solid #444; }
-        .btn { background: #ccff33; color: black; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
-        #admin-panel { margin-top: 20px; border-top: 1px solid #555; padding-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h2>PORTAL KIEROWCY</h2>
-    <div id="data-container">Ładowanie tras...</div>
-
-    <div id="admin-panel">
-        <input type="password" id="admin-pass" placeholder="Hasło administratora">
-        <button class="btn" onclick="checkAdmin()">WEJDŹ DO EDYCJI</button>
-    </div>
+    <select id="routeSelect" onchange="updateHours()">
+        <option value="">Wybierz trasę...</option>
+    </select>
+    <select id="hourSelect">
+        <option value="">Wybierz godzinę...</option>
+    </select>
+    <button onclick="showSchedule()">POKAŻ HARMONOGRAM</button>
 </div>
 
+<div id="table-output" style="margin-top:20px;"></div>
+
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec"; // <-- TUTAJ WKLEJ SWÓJ URL
+    const API_URL = "TU_WKLEJ_SWOJ_URL_Z_GAS"; 
+    let fullDb = [];
 
-    async function loadData() {
-        try {
-            const response = await fetch(API_URL + "?action=getData");
-            const data = await response.json();
-            renderTable(data);
-        } catch (e) {
-            document.getElementById('data-container').innerText = "Błąd połączenia z serwerem.";
-        }
+    async function init() {
+        const res = await fetch(API_URL + "?action=getData");
+        fullDb = await res.json();
+        // Zakładamy, że trasy są w kolumnie 0 (indeks 0)
+        const routes = [...new Set(fullDb.slice(1).map(r => r[0]))];
+        const rSel = document.getElementById('routeSelect');
+        routes.forEach(r => rSel.add(new Option(r, r)));
     }
 
-    function renderTable(data) {
-        let html = '<table>';
-        data.forEach(row => {
-            html += `<tr><td>${row[0]}</td><td>${row[1] || '--'}</td></tr>`;
-        });
-        html += '</table>';
-        document.getElementById('data-container').innerHTML = html;
+    function updateHours() {
+        const route = document.getElementById('routeSelect').value;
+        const hours = [...new Set(fullDb.slice(1).filter(r => r[0] === route).map(r => r[1]))];
+        const hSel = document.getElementById('hourSelect');
+        hSel.innerHTML = '<option value="">Wybierz godzinę...</option>';
+        hours.forEach(h => hSel.add(new Option(h, h)));
     }
 
-    async function checkAdmin() {
-        const pass = document.getElementById('admin-pass').value;
-        const response = await fetch(API_URL + "?action=checkPassword&pass=" + encodeURIComponent(pass));
-        const result = await response.json();
+    function showSchedule() {
+        const route = document.getElementById('routeSelect').value;
+        const hour = document.getElementById('hourSelect').value;
+        const filtered = fullDb.filter(r => r[0] === route && r[1] === hour);
         
-        if (result.success) {
-            alert("Hasło poprawne! Przekierowuję...");
-            window.open('https://script.google.com/macros/s/TWÓJ_LINK_DO_EDYCJI/exec', '_blank');
-        } else {
-            alert("Błędne hasło!");
-        }
+        let html = '<table border="1" style="width:100%; color:white;">';
+        filtered.forEach(row => {
+            html += `<tr><td>${row[2]}</td><td>${row[3]}</td></tr>`;
+        });
+        document.getElementById('table-output').innerHTML = html + '</table>';
     }
 
-    loadData();
+    init();
 </script>
 </body>
 </html>
