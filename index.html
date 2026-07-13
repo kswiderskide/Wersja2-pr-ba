@@ -22,7 +22,7 @@
             max-width: 600px;
         }
         
-        /* CAŁKOWITE USUNIĘCIE TAP HIGHLIGHT (WIELKICH KWADRATÓW) I OUTLINE */
+        /* USUNIĘCIE TAP HIGHLIGHT (WIELKICH KWADRATÓW) I OUTLINE */
         button, a, select {
             -webkit-tap-highlight-color: transparent !important;
             outline: none !important;
@@ -362,7 +362,7 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
-    const高度Kolumn = ['06.00', '08.00', '10.00', '12.00', '14.00', '15.00', '16.00', '18.00']; // Zmienna pomocnicza do indeksów godzin
+    const godzinyKolumn = ['06.00', '08.00', '10.00', '12.00', '14.00', '15.00', '16.00', '18.00'];
     
     let globalDb = [];
     let wakeLock = null;
@@ -376,7 +376,6 @@
         startGpsTracking(); 
     });
 
-    // Śledzenie natywnego modułu GPS w urządzeniu kierowcy
     function startGpsTracking() {
         if ("geolocation" in navigator) {
             gpsWatchId = navigator.geolocation.watchPosition(
@@ -462,7 +461,7 @@
         
         globalDb.forEach((row, index) => {
             if (index > 0 && row[0] && row[0].toString().trim() === routeSelect) {
-                高度Kolumn.forEach((godzina, gIdx) => {
+                godzinyKolumn.forEach((godzina, gIdx) => {
                     const colIndex = 4 + gIdx; 
                     if (row[colIndex] && row[colIndex].toString().trim() !== '' && row[colIndex].toString().trim() !== '-') {
                         aktywneGodziny.add(godzina);
@@ -471,7 +470,7 @@
             }
         });
 
-        高度Kolumn.forEach(godzina => {
+        godzinyKolumn.forEach(godzina => {
             if (aktywneGodziny.has(godzina)) {
                 const option = document.createElement('option');
                 option.value = godzina;
@@ -485,7 +484,6 @@
         }
     }
 
-    // BEZPIECZNA WERYFIKACJA HASŁA NA SERWERZE GOOGLE APPS SCRIPT
     async function toggleEditSection() {
         const editSec = document.getElementById('editSection');
         
@@ -530,14 +528,13 @@
         if (updateInterval) clearInterval(updateInterval);
         updateInterval = setInterval(() => {
             renderTableData(routeSelect, timeSelect);
-        }, 60000); // Odświeżanie klas czasu i asystenta ETA co 60 sekund
+        }, 60000); 
 
         currentRouteInfo.innerHTML = `<i class="fas fa-bus"></i> ${routeSelect}     <i class="fas fa-clock"></i> Kurs: ${timeSelect}`;
         selectionScreen.style.display = 'none';
         scheduleScreen.style.display = 'block';
     }
 
-    // Bezpieczny tunel API wyliczający odległość i drogę w ruchu ulicznym przez Google Maps
     async function fetchGoogleETA(originCoords, destinationCoords) {
         if (!originCoords) return null;
         
@@ -548,6 +545,14 @@
             const secureUrl = `${API_URL}?action=get_eta&origin=${originCoords.lat},${originCoords.lng}&destination=${encodeURIComponent(destinationCoords)}`;
             const res = await fetch(secureUrl);
             const data = await res.json();
+            
+            // JEŚLI KOD GOOGLE APPS SCRIPT ZIGNOROWAŁ KLUCZ I ZWRÓCIŁ INFORMACJĘ O BRAKU KLUCZA LUB BŁĄD API, NIE PRZERYWAMY PRACY
+            if (data && data.error_message && data.error_message.includes("API key")) {
+                return null;
+            }
+            if (data && data.disabled) {
+                return null;
+            }
             
             if (data.rows && data.rows[0].elements && data.rows[0].elements[0].status === "OK") {
                 const element = data.rows[0].elements[0];
@@ -560,14 +565,14 @@
                 return result;
             }
         } catch (e) {
-            console.error("Błąd pobierania danych asystenta ETA z serwera:", e);
+            console.error("Błąd asystenta ETA (API ignorowane lub wyłączone):", e);
         }
         return null;
     }
 
     async function renderTableData(routeSelect, timeSelect) {
         const tableBody = document.getElementById('scheduleTableBody');
-        const colIndex = 4 + 高度Kolumn.indexOf(timeSelect);
+        const colIndex = 4 + godzinyKolumn.indexOf(timeSelect);
 
         const filteredRows = globalDb.filter((row, index) => {
             if (index === 0) return false;
@@ -623,7 +628,6 @@
                 tr.className = 'next-stop';
             }
 
-            // Integracja Live ETA i asystenta punktualności (tylko dla punktu obecnego oraz kolejnego dla oszczędności zapytań)
             let liveGpsHtml = "";
             if (userCoords && koordynaty && (index === indeksNajblizszego || index === indeksNajblizszego + 1)) {
                 const etaData = await fetchGoogleETA(userCoords, koordynaty);
@@ -688,7 +692,7 @@
     }
 
     function navFromHere(clickedIndex, routeSelect, timeSelect) {
-        const colIndex = 4 + 高度Kolumn.indexOf(timeSelect);
+        const colIndex = 4 + godzinyKolumn.indexOf(timeSelect);
         
         const filteredRows = globalDb.filter((row, index) => {
             if (index === 0) return false;
@@ -734,7 +738,6 @@
         document.getElementById('scheduleScreen').style.display = 'none';
     }
 
-    // Zarządzanie blokadą ekranu (Wake Lock API) ze wskaźnikami wizualnymi
     async function toggleWakeLock() {
         const btn = document.getElementById('wakeLockBtn');
         const txt = document.getElementById('wakeLockText');
