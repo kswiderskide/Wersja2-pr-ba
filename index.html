@@ -22,7 +22,17 @@
             max-width: 600px;
         }
         
-        /* NOWY UKŁAD NAGŁÓWKA: Trzy niezależne strefy */
+        /* USUNIĘCIE DOMYŚLNYCH PODŚWIETLEŃ DLA CAŁEJ APLIKACJI */
+        button, a, select {
+            -webkit-tap-highlight-color: transparent !important;
+            outline: none !important;
+        }
+        button:focus, a:focus {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* NAGŁÓWEK: Trzy strefy */
         header {
             display: flex;
             justify-content: space-between;
@@ -55,7 +65,7 @@
             justify-content: flex-end;
         }
 
-        /* Styl żarówki (Wake Lock) z czatu - konturowy SVG */
+        /* Styl żarówki (Wake Lock) - konturowy SVG */
         .wake-lock-btn {
             background: none;
             border: none;
@@ -200,7 +210,7 @@
             font-size: 14px;
         }
         
-        /* KLASY CZASOWE DLA PRZYSTANKÓW (Blednięcie i Podświetlenie) */
+        /* dynamiczny wygląd przystanków */
         tr.passed-stop {
             opacity: 0.35;
         }
@@ -215,7 +225,7 @@
             color: #ffffff;
         }
 
-        /* Przyciski nawigacyjne w tabeli */
+        /* Przyciski nawigacyjne w tabeli bez zbędnych tłeń i ramek */
         .actions-cell {
             display: flex;
             gap: 12px;
@@ -335,7 +345,6 @@
 
     window.addEventListener('DOMContentLoaded', loadData);
 
-    // Pobieranie danych z cache (LocalStorage) oraz z sieci
     async function loadData() {
         const statusDiv = document.getElementById('status');
         const cachedData = localStorage.getItem('portal_kierowcy_cache');
@@ -436,7 +445,6 @@
         }
     }
 
-    // Generowanie widoku tabeli i zarządzanie czasem rzeczywistym
     function showSchedule() {
         const routeSelect = document.getElementById('routeSelect').value;
         const timeSelect = document.getElementById('timeSelect').value;
@@ -451,13 +459,12 @@
 
         renderTableData(routeSelect, timeSelect);
         
-        // Automatyczne odświeżanie klas (blednięcie/podświetlenie) co 30 sekund w tle
         if (updateInterval) clearInterval(updateInterval);
         updateInterval = setInterval(() => {
             renderTableData(routeSelect, timeSelect);
         }, 30000);
 
-        currentRouteInfo.innerHTML = `<i class="fas fa-bus"></i> ${routeSelect} &nbsp;&nbsp;&nbsp; <i class="fas fa-clock"></i> Kurs: ${timeSelect}`;
+        currentRouteInfo.innerHTML = `<i class="fas fa-bus"></i> ${routeSelect}     <i class="fas fa-clock"></i> Kurs: ${timeSelect}`;
         selectionScreen.style.display = 'none';
         scheduleScreen.style.display = 'block';
     }
@@ -468,7 +475,6 @@
 
         const colIndex = 4 + godzinyKolumn.indexOf(timeSelect);
 
-        // Filtrowanie przystanków należących do wybranej trasy i kursu
         const filteredRows = globalDb.filter((row, index) => {
             if (index === 0) return false;
             const isRoute = row[0] && row[0].toString().trim() === routeSelect;
@@ -481,14 +487,12 @@
             return;
         }
 
-        // Ustalanie czasu systemowego w celu przyznania odpowiednich klas (.passed-stop, .current-stop, .next-stop)
         const teraz = new Date();
         const obecneMinutyOdPolnocy = teraz.getHours() * 60 + teraz.getMinutes();
 
         let indeksNajblizszego = -1;
         let minimalnaRoznica = Infinity;
 
-        // Krok A: Znajdowanie przystanku najbliższego w przyszłości bądź obecnego
         filteredRows.forEach((row, index) => {
             const tStr = row[colIndex].toString().trim().replace('.', ':');
             const parts = tStr.split(':');
@@ -503,12 +507,10 @@
             }
         });
 
-        // Jeśli wszystkie godziny już minęły, podświetlamy ostatni przystanek kursu
         if (indeksNajblizszego === -1) {
             indeksNajblizszego = filteredRows.length - 1;
         }
 
-        // Krok B: Budowanie wierszy i implementacja podwójnego systemu nawigacji (Wektorowe SVG)
         filteredRows.forEach((row, index) => {
             const godzinaOdjazdu = row[colIndex].toString().trim();
             const nazwaPrzystanku = row[1] ? row[1].toString().trim() : 'Nieznany przystanek';
@@ -516,7 +518,6 @@
 
             const tr = document.createElement('tr');
             
-            // Przypisywanie klasy dynamicznego wyglądu (blednięcie, seledyn)
             if (index < indeksNajblizszego) {
                 tr.className = 'passed-stop';
             } else if (index === indeksNajblizszego) {
@@ -537,7 +538,7 @@
                                 <line x1="15" y1="6" x2="15" y2="21"></line>
                             </svg>
                         </button>
-                        <button class="action-icon-btn" onclick="openSingleStop('${koordynaty}')" title="Pokaż tylko ten przystanek" style="color: #ff3333;">
+                        <button class="action-icon-btn" onclick="openSingleStop('${coords = koordynaty}')" title="Pokaż tylko ten przystanek" style="color: #ff3333;">
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
@@ -555,7 +556,6 @@
         });
     }
 
-    // NAWIGACJA 1: Generowanie trasy od lokalizacji kierowcy przez bieżący punkt do pętli końcowej (Ignoruje kolumnę D)
     function navFromHere(clickedIndex, routeSelect, timeSelect) {
         const colIndex = 4 + godzinyKolumn.indexOf(timeSelect);
         
@@ -566,7 +566,6 @@
             return isRoute && hasTime;
         });
 
-        // Pobieramy koordynaty od punktu klikniętego do samego końca trasy
         const remainingCoordinates = [];
         for (let i = clickedIndex; i < filteredRows.length; i++) {
             const coords = filteredRows[i][2] ? filteredRows[i][2].toString().trim() : '';
@@ -589,12 +588,10 @@
             waypointsParam = `&waypoints=${encodeURIComponent(waypointsList.join('|'))}`;
         }
 
-        // Oficjalny format uniwersalnego API Google Maps Navigation URL wybudzający natywną aplikację
         const finalMapsUrl = `https://www.google.com/maps/dir/?api=1&${startParam}&${destinationParam}${waypointsParam}&travelmode=driving`;
         window.open(finalMapsUrl, '_blank');
     }
 
-    // NAWIGACJA 2: Otwieranie samej pineski (Szpilki) dla wybranego punktu bez narzucania trasy
     function openSingleStop(coords) {
         const finalMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords)}`;
         window.open(finalMapsUrl, '_blank');
@@ -606,7 +603,6 @@
         document.getElementById('scheduleScreen').style.display = 'none';
     }
 
-    // Funkcja zarządzania blokadą wygaszania ekranu (Wake Lock API) z dynamiczną zmianą tekstu
     async function toggleWakeLock() {
         const btn = document.getElementById('wakeLockBtn');
         const txt = document.getElementById('wakeLockText');
