@@ -41,8 +41,25 @@
       text-align: center;
       flex-grow: 1;
     }
-   #adminPanel { display: none; max-width: 500px; margin: 20px auto; padding: 20px; background-color: var(--card-bg); border: 1px solid #333; border-radius: 6px; }
-.admin-input { width: 100%; padding: 12px; margin-top: 5px; background-color: var(--bg-color); border: 1px solid #333; color: var(--text); border-radius: 6px; box-sizing: border-box; } 
+    #adminPanel { 
+      display: none; 
+      max-width: 500px; 
+      margin: 20px auto; 
+      padding: 20px; 
+      background-color: var(--card-bg); 
+      border: 1px solid #333; 
+      border-radius: 6px; 
+    }
+    .admin-input { 
+      width: 100%; 
+      padding: 12px; 
+      margin-top: 5px; 
+      background-color: var(--bg-color); 
+      border: 1px solid #333; 
+      color: var(--text); 
+      border-radius: 6px; 
+      box-sizing: border-box; 
+    } 
     .icon-btn {
       background: none;
       border: none;
@@ -66,7 +83,8 @@
     
     .toolbox-icon { color: var(--text-muted); font-size: 22px; }
 
-    .form-group { max-width: 500px; margin: 0 auto 15px auto; }
+    .filter-box { max-width: 500px; margin: 0 auto 15px auto; }
+    .form-group { margin-bottom: 15px; }
     label { display: block; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
     select {
       width: 100%; padding: 12px; background-color: var(--card-bg);
@@ -86,7 +104,6 @@
     }
     .route-title { font-size: 16px; margin-bottom: 8px; }
     
-    /* Powiększony zegarek poniżej nazwy trasy */
     .live-clock {
       font-size: 32px; font-weight: bold; color: var(--accent);
       font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; margin-top: 5px;
@@ -104,7 +121,6 @@
       padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
     }
-    /* Podświetlenie zbliżającego się przystanku bez wyskakujących okienek */
     .stop-card.active-stop {
       background-color: var(--accent-dim); border-left: 6px solid var(--accent);
       border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); border-right: 1px solid var(--accent);
@@ -117,7 +133,6 @@
     .stop-timing-block { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; text-align: right; }
     .stop-time { font-size: 14px; color: var(--accent); font-weight: bold; }
     
-    /* Wyraźniejsza plakietka ETA wewnątrz karty */
     .eta-badge { font-size: 12px; margin-top: 4px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
     .eta-badge.on-time { background-color: var(--accent-dim); color: var(--accent); }
     .eta-badge.delayed { background-color: var(--danger-dim); color: var(--danger); }
@@ -139,11 +154,14 @@
 <body>
 
   <div id="adminPanel">
-  <h3 style="color: var(--accent);">Panel Administratora</h3>
-  <input type="text" id="routeLink" class="admin-input" placeholder="Wklej link googleusercontent...">
-  <button class="btn-submit" style="margin-top: 10px;" onclick="convertShortLink()">Pobierz współrzędne</button>
-  <div id="adminLinkResult" style="margin-top: 15px; font-size: 14px;"></div>
-</div>
+    <h3 style="color: var(--accent); margin-top: 0;">Panel Administratora</h3>
+    <label for="routeLink">Wklej krótki link Google Maps:</label>
+    <input type="text" id="routeLink" class="admin-input" placeholder="Wklej link np. https://maps.app.goo.gl/...">
+    <button class="btn-submit" style="margin-top: 15px;" onclick="convertShortLink()">Pobierz współrzędne</button>
+    <div id="adminLinkResult" style="margin-top: 15px; font-size: 14px; font-weight: bold; text-align: center;"></div>
+    <button class="btn-submit" style="background:#333; color:#fff; margin-top:10px;" onclick="closeAdminPanel()">Zamknij Panel</button>
+  </div>
+
   <div class="header-container">
     <button id="wakeLockBtn" class="icon-btn wake-lock-off" onclick="toggleWakeLock()">
       <svg width="22" height="22" viewBox="0 0 24 24">
@@ -155,7 +173,7 @@
     <button class="icon-btn toolbox-icon" onclick="openPasswordModal()">🧰</button>
   </div>
 
-  <div id="filter-box">
+  <div id="filter-box" class="filter-box">
     <div class="form-group">
       <label for="routeSelect">1. Wybierz trasę:</label>
       <select id="routeSelect" onchange="onRouteChanged()">
@@ -208,7 +226,7 @@
     let selectedHourGlobal = "";
 
     document.addEventListener("DOMContentLoaded", function() {
-      fetch(API_URL)
+      fetch(`${API_URL}?action=getSheetData`)
         .then(response => response.json())
         .then(data => {
           if (data.error) { alert("Błąd bazy danych: " + data.error); return; }
@@ -217,7 +235,7 @@
           populateRoutes();
           initGpsTracking();
         })
-        .catch(err => { alert("Błąd połączenia: " + err); });
+        .catch(err => { alert("Błąd połączenia z bazą: " + err); });
     });
 
     document.addEventListener('visibilitychange', async () => {
@@ -330,7 +348,7 @@
       });
 
       validStops.forEach((stop, index) => {
-        let singlePinUrl = stop.coords ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}` : "";
+        let singlePinUrl = stop.coords ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(stop.coords)}` : "";
         let dynamicMapUrl = "";
 
         if (stop.coords) {
@@ -341,7 +359,7 @@
             let start = currentCoords ? `${currentCoords.lat},${currentCoords.lng}` : remaining[0].coords;
             if (!currentCoords && wps.length > 0) wps.shift();
 
-            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(dest)}`;
+            dynamicMapUrl = `http://googleusercontent.com/maps.google.com/?saddr=${encodeURIComponent(start)}&daddr=${encodeURIComponent(dest)}`;
             if (wps.length > 0) dynamicMapUrl += `&waypoints=${encodeURIComponent(wps.join('|'))}`;
           }
         }
@@ -406,7 +424,6 @@
               card.className = "stop-card active-stop";
               if (report.badgeText) {
                 badge.style.display = "inline-block";
-                // Korzystamy z tekstu statusu bezpośrednio w plaku na karcie przystanku
                 badge.textContent = report.durationOnly ? `Za ${report.durationOnly} | ${report.isDelayed ? 'Opóźn.' : 'OK'}` : report.badgeText;
                 badge.className = `eta-badge ${report.isDelayed ? 'delayed' : 'on-time'}`;
               }
@@ -437,34 +454,65 @@
       }
     }
 
-    function openPasswordModal() { document.getElementById("passwordModal").style.display = "flex"; document.getElementById("adminPassword").focus(); }
-    function closePasswordModal() { document.getElementById("adminPassword").value = ""; document.getElementById("passwordModal").style.display = "none"; }
+    function openPasswordModal() { 
+      document.getElementById("passwordModal").style.display = "flex"; 
+      document.getElementById("adminPassword").focus(); 
+    }
+    
+    function closePasswordModal() { 
+      document.getElementById("adminPassword").value = ""; 
+      document.getElementById("passwordModal").style.display = "none"; 
+    }
+    
     function checkPassword() {
       const pass = document.getElementById("adminPassword").value;
       if (!pass) return;
+      
       fetch(`${API_URL}?action=verifyPassword&password=${encodeURIComponent(pass)}`)
         .then(res => res.json())
         .then(res => {
           if (res.success) { 
-  alert("Zalogowano pomyślnie!"); 
-  closePasswordModal(); 
-  document.getElementById("adminPanel").style.display = "block"; // ODSŁOŃ PANEL
-}
-          function convertShortLink() {
-  const url = document.getElementById("routeLink").value;
-  const resDiv = document.getElementById("adminLinkResult");
-  resDiv.innerText = "Przetwarzanie...";
+            alert("Zalogowano pomyślnie!"); 
+            closePasswordModal(); 
+            document.getElementById("adminPanel").style.display = "block";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else {
+            alert("Błąd: " + res.message);
+          }
+        })
+        .catch(err => {
+          alert("Wystąpił błąd podczas weryfikacji: " + err);
+        });
+    }
 
-  google.script.run
-    .withSuccessHandler(data => {
-      if (data.success) {
-        resDiv.innerHTML = `<span style="color: var(--accent);">✅ Lat: ${data.lat}, Lng: ${data.lng}</span>`;
-      } else {
-        resDiv.innerHTML = `<span style="color: var(--danger);">❌ ${data.error}</span>`;
+    function closeAdminPanel() {
+      document.getElementById("adminPanel").style.display = "none";
+      document.getElementById("routeLink").value = "";
+      document.getElementById("adminLinkResult").innerText = "";
+    }
+
+    function convertShortLink() {
+      const url = document.getElementById("routeLink").value;
+      const resDiv = document.getElementById("adminLinkResult");
+      if (!url) {
+        resDiv.innerHTML = `<span style="color: var(--danger);">❌ Wklej najpierw link!</span>`;
+        return;
       }
-    })
-    .resolveShortLink(url);
-}
+      resDiv.innerHTML = `<span style="color: var(--text-muted);">Przetwarzanie...</span>`;
+
+      fetch(`${API_URL}?action=resolveShortLink&url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            resDiv.innerHTML = `<span style="color: var(--accent);">✅ Lat: ${data.lat}, Lng: ${data.lng}</span>`;
+          } else {
+            resDiv.innerHTML = `<span style="color: var(--danger);">❌ ${data.error}</span>`;
+          }
+        })
+        .catch(err => {
+          resDiv.innerHTML = `<span style="color: var(--danger);">❌ Błąd połączenia: ${err}</span>`;
+        });
+    }
   </script>
 </body>
 </html>
