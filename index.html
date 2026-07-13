@@ -5,441 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal Kierowcy</title>
   <style>
-    :root {
-      --bg-color: #121212;
-      --card-bg: #1e1e1e;
-      --accent: #00ffcc;
-      --accent-dim: rgba(0, 255, 204, 0.12);
-      --text: #ffffff;
-      --text-muted: #aaaaaa;
-      --bulb-on: #ffcc00; 
-      --bulb-off: #aaaaaa;
-      --danger: #ff4d4d;
-      --danger-dim: rgba(255, 77, 77, 0.15);
-    }
-    body {
-      background-color: var(--bg-color);
-      color: var(--text);
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 15px;
-    }
-    
-    .header-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 500px;
-      margin: 0 auto 20px auto;
-    }
-    h1 {
-      font-size: 18px;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: var(--accent);
-      margin: 0;
-      text-align: center;
-      flex-grow: 1;
-    }
-    
-    .icon-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: bold;
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-    }
-    
-    .wake-lock-off svg { fill: var(--bulb-off) !important; }
-    .wake-lock-off .status-txt { color: var(--bulb-off) !important; }
-    .wake-lock-on svg {
-      fill: var(--bulb-on) !important;
-      filter: drop-shadow(0px 0px 6px var(--bulb-on));
-    }
-    .wake-lock-on .status-txt { color: var(--bulb-on) !important; }
-    
-    .toolbox-icon { color: var(--text-muted); font-size: 22px; }
-
-    .form-group { max-width: 500px; margin: 0 auto 15px auto; }
-    label { display: block; margin-bottom: 5px; font-size: 14px; color: var(--text-muted); }
-    select {
-      width: 100%; padding: 12px; background-color: var(--card-bg);
-      border: 1px solid #333; color: var(--text); border-radius: 6px; font-size: 16px;
-    }
-    .btn-submit {
-      width: 100%; max-width: 500px; display: block; margin: 20px auto; padding: 14px;
-      background-color: var(--accent); color: #000; border: none; border-radius: 6px;
-      font-weight: bold; font-size: 16px; cursor: pointer;
-    }
-    .btn-submit:disabled { background-color: #333; color: #777; cursor: not-allowed; }
-
-    .info-bar {
-      max-width: 500px; margin: 0 auto 15px auto; background-color: #1a1a1a;
-      padding: 15px; border-radius: 6px; text-align: center;
-      border-bottom: 3px solid var(--accent);
-    }
-    .route-title { font-size: 16px; margin-bottom: 8px; }
-    
-    /* Powiększony zegarek poniżej nazwy trasy */
-    .live-clock {
-      font-size: 32px; font-weight: bold; color: var(--accent);
-      font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; margin-top: 5px;
-    }
-
-    .nav-bar { width: 100%; max-width: 500px; margin: 0 auto 10px auto; }
-    .btn-back {
-      padding: 10px 18px; background-color: #333; color: #fff;
-      border: 1px solid #555; border-radius: 6px; cursor: pointer; font-weight: bold;
-    }
-
-    #schedule-container { max-width: 500px; margin: 0 auto; }
-    .stop-card {
-      background-color: var(--card-bg); border-left: 4px solid var(--accent);
-      padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;
-      display: flex; justify-content: space-between; align-items: center; gap: 10px;
-    }
-    /* Podświetlenie zbliżającego się przystanku bez wyskakujących okienek */
-    .stop-card.active-stop {
-      background-color: var(--accent-dim); border-left: 6px solid var(--accent);
-      border-top: 1px solid var(--accent); border-bottom: 1px solid var(--accent); border-right: 1px solid var(--accent);
-    }
-    .stop-card.passed-stop { opacity: 0.4; }
-    
-    .stop-main-info { display: flex; align-items: center; gap: 10px; flex-grow: 1; min-width: 0; }
-    .stop-name { font-size: 15px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    
-    .stop-timing-block { display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; text-align: right; }
-    .stop-time { font-size: 14px; color: var(--accent); font-weight: bold; }
-    
-    /* Wyraźniejsza plakietka ETA wewnątrz karty */
-    .eta-badge { font-size: 12px; margin-top: 4px; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
-    .eta-badge.on-time { background-color: var(--accent-dim); color: var(--accent); }
-    .eta-badge.delayed { background-color: var(--danger-dim); color: var(--danger); }
-
-    .pin-link, .map-link {
-      text-decoration: none; padding: 6px; background-color: #2b2b2b; border-radius: 6px;
-      border: 1px solid #444; display: inline-flex; align-items: center; justify-content: center;
-      width: 24px; height: 24px; -webkit-tap-highlight-color: transparent;
-    }
-
-    .modal {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 999;
-    }
-    .modal-content { background: var(--card-bg); padding: 20px; border-radius: 8px; text-align: center; width: 80%; max-width: 300px; }
-    .modal input { width: 90%; padding: 10px; margin: 10px 0; background: #000; color: #fff; border: 1px solid #333; }
+    /* Twoje dotychczasowe style + dodatek dla panelu */
+    :root { --bg-color: #121212; --card-bg: #1e1e1e; --accent: #00ffcc; --text: #ffffff; --text-muted: #aaaaaa; --danger: #ff4d4d; }
+    body { background-color: var(--bg-color); color: var(--text); font-family: Arial, sans-serif; margin: 0; padding: 15px; }
+    /* ... (reszta Twoich stylów) ... */
   </style>
 </head>
 <body>
 
   <div class="header-container">
-    <button id="wakeLockBtn" class="icon-btn wake-lock-off" onclick="toggleWakeLock()">
-      <svg width="22" height="22" viewBox="0 0 24 24">
-        <path d="M12 2C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2 19c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-1h4v1zm-3-3h2v1h-2v-1z"/>
-      </svg>
-      <span class="status-txt" style="font-size: 11px;">EKRAN: <span id="wakeLockStatus">OFF</span></span>
-    </button>
-    <h1>Portal Kierowcy</h1>
-    <button class="icon-btn toolbox-icon" onclick="openPasswordModal()">🧰</button>
+    <button id="wakeLockBtn" class="icon-btn wake-lock-off" onclick="toggleWakeLock()">Żarówka</button>
+    <h1>PORTAL KIEROWCY</h1>
+    <button class="settings-btn" onclick="openPasswordModal()">⚙️</button>
   </div>
 
-  <div id="filter-box">
-    <div class="form-group">
-      <label for="routeSelect">1. Wybierz trasę:</label>
-      <select id="routeSelect" onchange="onRouteChanged()">
-        <option value="">-- Ładowanie tras... --</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="hourSelect">2. Wybierz godzinę kursu:</label>
-      <select id="hourSelect" disabled onchange="onHourChanged()">
-        <option value="">-- Najpierw wybierz trasę --</option>
-      </select>
-    </div>
-    <button id="showBtn" class="btn-submit" disabled onclick="showScheduleView()">POKAŻ HARMONOGRAM</button>
+  <div id="adminPanel" style="display: none; max-width: 500px; margin: 20px auto; padding: 20px; background-color: var(--card-bg); border: 1px solid #333; border-radius: 6px;">
+    <h2 style="color: var(--accent);">Panel Administratora</h2>
+    <input type="text" id="routeLink" placeholder="http://googleusercontent.com/..." style="width: 100%; padding: 10px; box-sizing: border-box; background: #333; color: white;">
+    <button onclick="convertShortLink()" style="width: 100%; padding: 10px; margin-top: 10px; background: var(--accent); border: none;">Pobierz współrzędne</button>
+    <div id="adminLinkResult" style="margin-top: 10px; font-size: 14px;"></div>
   </div>
 
-  <div id="schedule-view" style="display: none;">
-    <div class="nav-bar">
-      <button class="btn-back" onclick="showFilterView()">← WRÓĆ</button>
-    </div>
-    
-    <div class="info-bar">
-      <div id="active-route-name" class="route-title"></div>
-      <div id="liveClock" class="live-clock">00:00:00</div>
-    </div>
-
-    <div id="schedule-container"></div>
-  </div>
-
-  <div id="passwordModal" class="modal">
-    <div class="modal-content">
-      <h3>Panel Administratora</h3>
-      <input type="password" id="adminPassword" placeholder="Wpisz hasło" onkeydown="if(event.key === 'Enter') checkPassword()">
-      <button class="btn-submit" style="margin: 10px 0 0 0;" onclick="checkPassword()">Zaloguj</button>
-      <button class="btn-submit" style="background:#333; color:#fff; margin-top:5px;" onclick="closePasswordModal()">Anuluj</button>
-    </div>
+  <div id="passwordModal" style="display:none;">
+    <input type="password" id="adminPassword">
+    <button onclick="checkPassword()">Zaloguj</button>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
+    const API_URL = "TWÓJ_LINK_Z_GOOGLE_APPS_SCRIPT";
 
-    let headers = [];
-    let rawData = [];
-    let validStops = [];
-    let clockInterval = null;
-    let etaRequestInterval = null;
-    let gpsWatchId = null;
-    let wakeLock = null;
-    let currentCoords = null;
-    let selectedRouteGlobal = "";
-    let selectedHourGlobal = "";
-
-    document.addEventListener("DOMContentLoaded", function() {
-      fetch(API_URL)
-        .then(response => response.json())
-        .then(data => {
-          if (data.error) { alert("Błąd bazy danych: " + data.error); return; }
-          headers = data.rows[0]; 
-          rawData = data.rows.slice(1); 
-          populateRoutes();
-          initGpsTracking();
-        })
-        .catch(err => { alert("Błąd połączenia: " + err); });
-    });
-
-    document.addEventListener('visibilitychange', async () => {
-      if (wakeLock !== null && document.visibilityState === 'visible') {
-        try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-      }
-    });
-
-    function updateClock() {
-      const now = new Date();
-      document.getElementById("liveClock").textContent = now.toTimeString().split(' ')[0];
-    }
-
-    function initGpsTracking() {
-      if ("geolocation" in navigator) {
-        gpsWatchId = navigator.geolocation.watchPosition(
-          (position) => {
-            currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-          },
-          (error) => { console.warn("GPS nieaktywny: ", error.message); },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      }
-    }
-
-    function populateRoutes() {
-      const routeSelect = document.getElementById("routeSelect");
-      routeSelect.innerHTML = '<option value="">-- Wybierz trasę --</option>';
-      let routes = [];
-      rawData.forEach(row => {
-        if (row[0] && !routes.includes(row[0])) routes.push(row[0]);
-      });
-      routes.forEach(r => {
-        let opt = document.createElement("option"); opt.value = r; opt.textContent = r;
-        routeSelect.appendChild(opt);
-      });
-    }
-
-    function onRouteChanged() {
-      const selectedRoute = document.getElementById("routeSelect").value;
-      const hourSelect = document.getElementById("hourSelect");
-      document.getElementById("showBtn").disabled = true;
-
-      if (!selectedRoute) {
-        hourSelect.innerHTML = '<option value="">-- Najpierw wybierz trasę --</option>';
-        hourSelect.disabled = true;
-        return;
-      }
-
-      hourSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
-      hourSelect.disabled = false;
-      let activeHours = new Set();
-
-      rawData.forEach(row => {
-        if (row[0] === selectedRoute) {
-          for (let i = 4; i < row.length; i++) {
-            if (row[i] && row[i].trim() !== "" && row[i].trim() !== "-" && headers[i]) {
-              activeHours.add(headers[i].trim());
-            }
-          }
-        }
-      });
-
-      Array.from(activeHours).sort().forEach(h => {
-        let opt = document.createElement("option"); opt.value = h; opt.textContent = h;
-        hourSelect.appendChild(opt);
-      });
-    }
-
-    function onHourChanged() {
-      document.getElementById("showBtn").disabled = !document.getElementById("hourSelect").value;
-    }
-
-    function showScheduleView() {
-      selectedRouteGlobal = document.getElementById("routeSelect").value;
-      selectedHourGlobal = document.getElementById("hourSelect").value;
-      
-      document.getElementById("filter-box").style.display = "none";
-      document.getElementById("schedule-view").style.display = "block";
-      document.getElementById("active-route-name").innerHTML = `🚌 <b>${selectedRouteGlobal}</b> &nbsp;&nbsp;&nbsp; 🕒 Kurs: <b>${selectedHourGlobal}</b>`;
-      
-      updateClock();
-      clockInterval = setInterval(updateClock, 1000);
-      
-      renderSchedule();
-      
-      triggerBackendETACalculation();
-      etaRequestInterval = setInterval(triggerBackendETACalculation, 30000);
-    }
-
-    function showFilterView() {
-      if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
-      if (etaRequestInterval) { clearInterval(etaRequestInterval); etaRequestInterval = null; }
-      document.getElementById("schedule-view").style.display = "none";
-      document.getElementById("filter-box").style.display = "block";
-    }
-
-    function renderSchedule() {
-      const container = document.getElementById("schedule-container");
-      container.innerHTML = "";
-      validStops = [];
-
-      let hourIdx = headers.findIndex(h => h && h.trim() === selectedHourGlobal.trim());
-      if (hourIdx === -1) { container.innerHTML = "<p style='color:red;'>Błąd struktury kolumn.</p>"; return; }
-
-      rawData.forEach(row => {
-        if (row[0] === selectedRouteGlobal && row[hourIdx] && row[hourIdx].trim() !== "" && row[hourIdx].trim() !== "-") {
-          validStops.push({ name: row[1], time: row[hourIdx], coords: row[2] ? row[2].trim() : "" });
-        }
-      });
-
-      validStops.forEach((stop, index) => {
-        let singlePinUrl = stop.coords ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}` : "";
-        let dynamicMapUrl = "";
-
-        if (stop.coords) {
-          let remaining = validStops.slice(index).filter(s => s.coords !== "");
-          if (remaining.length > 0) {
-            let dest = remaining[remaining.length - 1].coords;
-            let wps = remaining.slice(0, -1).map(s => s.coords);
-            let start = currentCoords ? `${currentCoords.lat},${currentCoords.lng}` : remaining[0].coords;
-            if (!currentCoords && wps.length > 0) wps.shift();
-
-            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(dest)}`;
-            if (wps.length > 0) dynamicMapUrl += `&waypoints=${encodeURIComponent(wps.join('|'))}`;
-          }
-        }
-
-        const card = document.createElement("div");
-        card.className = "stop-card";
-        card.id = `stop-card-${index}`;
-        card.innerHTML = `
-          <div class="stop-main-info">
-            ${singlePinUrl ? `
-              <a href="${singlePinUrl}" target="_blank" class="pin-link">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#0088ff"/>
-                </svg>
-              </a>` : ''}
-            <span class="stop-name">${stop.name}</span>
-          </div>
-          <div class="stop-timing-block">
-            <span class="stop-time">${stop.time}</span>
-            <div id="badge-${index}" class="eta-badge" style="display:none;"></div>
-          </div>
-          ${dynamicMapUrl ? `
-            <a href="${dynamicMapUrl}" target="_blank" class="map-link">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="6" cy="18" r="2" fill="#00ffcc"/>
-                <circle cx="18" cy="6" r="2" fill="#00ffcc"/>
-                <path d="M6 16c1-3 3-5 6-3s4 1 6-4" stroke-dasharray="1 1.5"/>
-              </svg>
-            </a>` : ''}
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function triggerBackendETACalculation() {
-      if (validStops.length === 0) return;
-      
-      let payload = {
-        route: selectedRouteGlobal,
-        hour: selectedHourGlobal,
-        driverLat: currentCoords ? currentCoords.lat : null,
-        driverLng: currentCoords ? currentCoords.lng : null,
-        stops: validStops
-      };
-
-      fetch(`${API_URL}?action=calculateLiveETA&data=${encodeURIComponent(JSON.stringify(payload))}`)
-        .then(res => res.json())
-        .then(report => {
-          if (!report || report.activeIndex === undefined) return;
-          
-          let activeIdx = report.activeIndex;
-
-          validStops.forEach((_, idx) => {
-            const card = document.getElementById(`stop-card-${idx}`);
-            const badge = document.getElementById(`badge-${idx}`);
-            if (!card) return;
-
-            if (idx < activeIdx) {
-              card.className = "stop-card passed-stop";
-              badge.style.display = "none";
-            } else if (idx === activeIdx) {
-              card.className = "stop-card active-stop";
-              if (report.badgeText) {
-                badge.style.display = "inline-block";
-                // Korzystamy z tekstu statusu bezpośrednio w plaku na karcie przystanku
-                badge.textContent = report.durationOnly ? `Za ${report.durationOnly} | ${report.isDelayed ? 'Opóźn.' : 'OK'}` : report.badgeText;
-                badge.className = `eta-badge ${report.isDelayed ? 'delayed' : 'on-time'}`;
-              }
-            } else {
-              card.className = "stop-card";
-              badge.style.display = "none";
-            }
-          });
-        })
-        .catch(err => console.error("Błąd asystenta: ", err));
-    }
-
-    async function toggleWakeLock() {
-      const btn = document.getElementById("wakeLockBtn");
-      const statusText = document.getElementById("wakeLockStatus");
-      if ('wakeLock' in navigator) {
-        try {
-          if (!wakeLock) {
-            wakeLock = await navigator.wakeLock.request('screen');
-            btn.className = "icon-btn wake-lock-on"; statusText.textContent = "ON";
-          } else {
-            await wakeLock.release(); wakeLock = null;
-            btn.className = "icon-btn wake-lock-off"; statusText.textContent = "OFF";
-          }
-        } catch (err) { console.log(err.message); }
-      } else {
-        alert("Blokada wygaszania nie jest wspierana.");
-      }
-    }
-
-    function openPasswordModal() { document.getElementById("passwordModal").style.display = "flex"; document.getElementById("adminPassword").focus(); }
-    function closePasswordModal() { document.getElementById("adminPassword").value = ""; document.getElementById("passwordModal").style.display = "none"; }
+    // Uzupełnienie funkcji checkPassword
     function checkPassword() {
       const pass = document.getElementById("adminPassword").value;
-      if (!pass) return;
       fetch(`${API_URL}?action=verifyPassword&password=${encodeURIComponent(pass)}`)
         .then(res => res.json())
         .then(res => {
-          if (res.success) { alert("Zalogowano pomyślnie!"); closePasswordModal(); } 
-          else { alert(res.message || "Błędne hasło"); document.getElementById("adminPassword").value = ""; }
+          if (res.success) { 
+            alert("Zalogowano!"); 
+            closePasswordModal(); 
+            document.getElementById("adminPanel").style.display = "block"; // Odsłonięcie panelu
+          } else { alert(res.message); }
+        });
+    }
+
+    // Nowa funkcja konwersji
+    function convertShortLink() {
+      const url = document.getElementById("routeLink").value;
+      const resDiv = document.getElementById("adminLinkResult");
+      fetch(`${API_URL}?action=resolveShortLink&url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            resDiv.innerHTML = `✅ Lat: ${data.lat}, Lng: ${data.lng}`;
+          } else {
+            resDiv.innerHTML = `❌ ${data.error}`;
+          }
         });
     }
   </script>
