@@ -2,734 +2,522 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Portal Kierowcy</title>
-    <link rel="manifest" href="app.webmanifest">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* Główne style - Dark Mode */
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-        }
-        
-        button, a, select {
-            -webkit-tap-highlight-color: transparent !important;
-            outline: none !important;
-        }
-        button:focus, a:focus {
-            outline: none !important;
-            box-shadow: none !important;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
         }
 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            padding: 15px;
+            padding-bottom: 30px;
+        }
+
+        /* Trzystrefowy, oczyszczony nagłówek */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
             margin-bottom: 20px;
-            border-bottom: 2px solid #333;
             padding-bottom: 10px;
+            border-bottom: 1px solid #2d2d2d;
         }
-        .header-left {
+
+        .header-left, .header-right {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex: 1;
-            justify-content: flex-start;
         }
+
+        .header-right {
+            justify-content: flex-end;
+        }
+
         .header-center {
             flex: 2;
             text-align: center;
         }
+
         .header-center h1 {
+            font-size: 20px;
+            font-weight: 600;
             color: #ffffff;
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: 1px;
-        }
-        .header-right {
-            flex: 1;
-            display: flex;
-            justify-content: flex-end;
+            letter-spacing: 0.5px;
         }
 
-        .wake-lock-btn {
-            background: none;
-            border: none;
-            color: #666;
+        /* Usunięcie efektu brzydkich kwadratów / podświetleń dotykowych */
+        .wake-lock-btn, .settings-btn {
+            background: none !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-appearance: none;
+            appearance: none;
             cursor: pointer;
+            padding: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 5px;
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease;
         }
-        .wake-lock-btn svg {
-            width: 28px;
-            height: 28px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+
+        .wake-lock-btn:hover, .wake-lock-btn:active, .wake-lock-btn:focus,
+        .settings-btn:hover, .settings-btn:active, .settings-btn:focus {
+            background: transparent !important;
+            background-color: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-tap-highlight-color: transparent !important;
         }
-        .wake-lock-btn.active {
-            color: #ccff33;
-            filter: drop-shadow(0 0 8px #ccff33) drop-shadow(0 0 15px #ccff33);
+
+        .wake-lock-btn:active, .settings-btn:active {
+            transform: scale(0.92);
         }
-        .wake-lock-text {
+
+        .status-text {
             font-size: 11px;
             font-weight: bold;
-            color: #666;
-            transition: color 0.3s;
-        }
-        .wake-lock-btn.active + .wake-lock-text {
-            color: #ccff33;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .settings-btn {
-            background: none;
-            border: none;
-            color: #b3b3b3;
-            font-size: 24px;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .settings-btn:hover {
-            color: #ccff33;
+        .status-text.active {
+            color: #4caf50;
         }
 
-        #editSection {
-            width: 100%;
-            height: 500px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #444;
-            display: none;
-        }
-        #editSection iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .filter-box {
-            background-color: #262626;
+        /* Formularz wyboru i interfejs */
+        .setup-container {
+            background-color: #1e1e1e;
             padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 15px;
+            border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
+            margin-bottom: 20px;
         }
-        label {
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
             display: block;
-            margin-bottom: 5px;
-            color: #b3b3b3;
+            margin-bottom: 8px;
             font-size: 14px;
-            font-weight: bold;
+            color: #aaa;
         }
-        select, button {
+
+        select {
             width: 100%;
             padding: 14px;
-            background-color: #333;
-            border: 1px solid #444;
+            background-color: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
             color: #fff;
-            border-radius: 6px;
             font-size: 16px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-        }
-        select:focus {
-            border-color: #ccff33;
             outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
         }
-        button {
-            background-color: #ccff33;
-            color: #000;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            margin-bottom: 0;
-            transition: background 0.2s;
+
+        select:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
-        button:hover {
-            background-color: #b3e62e;
+
+        select:focus {
+            border-color: #4a90e2;
         }
-        .back-btn {
-            background-color: #444;
-            color: #fff;
-            padding: 12px;
-            font-size: 14px;
-            margin-bottom: 15px;
-            border-radius: 6px;
+
+        .btn-primary {
             width: 100%;
-            border: 1px solid #555;
+            padding: 15px;
+            background-color: #2ea44f;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        .back-btn:hover {
-            background-color: #555;
+
+        .btn-primary:disabled {
+            background-color: #234b30;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-primary:not(:disabled):active {
+            transform: scale(0.98);
+        }
+
+        /* Tabela harmonogramu */
+        .table-container {
+            overflow-x: auto;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            margin-top: 10px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: #262626;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            margin-top: 10px;
+            text-align: left;
         }
+
         th, td {
             padding: 14px 12px;
-            text-align: left;
-            border-bottom: 1px solid #333;
-            vertical-align: middle;
+            border-bottom: 1px solid #2d2d2d;
+            font-size: 15px;
         }
+
         th {
-            background-color: #333;
-            color: #ccff33;
-            font-size: 14px;
-        }
-        
-        tr.passed-stop {
-            opacity: 0.35;
-        }
-        tr.current-stop {
-            background-color: rgba(204, 255, 51, 0.15);
-        }
-        tr.current-stop td {
-            color: #ccff33;
-            font-weight: bold;
-        }
-        tr.next-stop {
-            color: #ffffff;
-        }
-
-        .live-info {
-            display: block;
-            font-size: 11px;
-            margin-top: 4px;
+            background-color: #252525;
             color: #aaa;
-            font-weight: normal;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-top: 3px;
-        }
-        .status-ontime {
-            background-color: #00cc66;
-            color: #000;
-        }
-        .status-delay {
-            background-color: #ff3333;
-            color: #fff;
+            font-weight: 500;
         }
 
-        .actions-cell {
-            display: flex;
-            gap: 12px;
-            align-items: center;
+        /* System podświetlania przystanków */
+        .passed-stop {
+            opacity: 0.4;
         }
-        .action-icon-btn {
-            background: none;
-            border: none;
-            padding: 4px;
-            cursor: pointer;
+
+        .current-stop {
+            background-color: rgba(0, 184, 148, 0.15) !important;
+            border-left: 4px solid #00b894;
+        }
+
+        .current-stop td {
+            color: #00b894;
+            font-weight: bold;
+        }
+
+        .next-stop {
+            background-color: rgba(255, 234, 167, 0.05);
+        }
+
+        /* Przycisk powrotu do wyboru */
+        .back-btn {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            color: #ccff33;
-            transition: transform 0.2s;
-        }
-        .action-icon-btn:hover {
-            transform: scale(1.15);
-        }
-        .action-icon-btn svg {
-            width: 22px;
-            height: 22px;
-        }
-        .no-map {
-            color: #666;
+            gap: 8px;
+            padding: 10px 16px;
+            background-color: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 8px;
+            color: #fff;
             font-size: 14px;
-        }
-        .status-msg {
-            text-align: center;
-            font-size: 12px;
-            color: #888;
-            margin-top: 5px;
+            cursor: pointer;
             margin-bottom: 15px;
         }
-        .route-info-header {
-            background-color: #262626;
-            padding: 14px;
+
+        /* Widoczność sekcji */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Kontener sekcji edycji / Iframe panelu */
+        #editSection {
+            margin-top: 15px;
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            padding: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
             border-radius: 8px;
+        }
+
+        /* Ładowanie danych */
+        .loader {
             text-align: center;
+            padding: 30px;
+            color: #aaa;
             font-size: 16px;
-            font-weight: bold;
-            color: #ccff33;
-            margin-bottom: 10px;
-            border: 1px solid #333;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
     <header>
         <div class="header-left">
-            <button id="wakeLockBtn" class="wake-lock-btn" onclick="toggleWakeLock()" title="Blokada ekranu">
-                <svg viewBox="0 0 24 24">
-                    <path d="M9 21h6M10 18h4M12 2v1M5.22 5.22l.71.71M18.78 5.22l-.71.71" stroke="currentColor"/>
-                    <path d="M12 6a6 6 0 0 0-6 6c0 2.22 1.21 4.16 3 5.2V18h6v-.8c1.79-1.04 3-2.98 3-5.2a6 6 0 0 0-6-6z" />
-                    <path d="M11 10h2M12 9v3" stroke-width="1.5"/>
-                </svg>
+            <button class="wake-lock-btn" id="wakeLockBtn" onclick="toggleWakeLock()">
+                <span style="font-size: 24px; line-height: 1;">💡</span>
             </button>
-            <span id="wakeLockText" class="wake-lock-text">EKRAN: OFF</span>
+            <span class="status-text" id="wakeLockStatus">EKRAN: OFF</span>
         </div>
         <div class="header-center">
             <h1>PORTAL KIEROWCY</h1>
         </div>
         <div class="header-right">
-            <button class="settings-btn" onclick="toggleEditSection()" title="Zarządzaj trasami i godzinami">
-                <i class="fas fa-cog"></i>
+            <button class="settings-btn" id="settingsBtn" onclick="toggleEditSection()">
+                <span style="font-size: 24px; line-height: 1;">🛠️</span>
             </button>
         </div>
     </header>
 
-    <div id="status" class="status-msg">Pobieranie danych...</div>
+    <div id="setupScreen" class="setup-container">
+        <div id="loadingMessage" class="loader">Pobieranie rozkładów z serwera...</div>
+        
+        <div id="formContent" class="hidden">
+            <div class="form-group">
+                <label for="routeSelect">Wybierz trasę:</label>
+                <select id="routeSelect" onchange="onRouteChanged()">
+                    <option value="">-- Wybierz linię --</option>
+                </select>
+            </div>
 
-    <div id="editSection">
-        <iframe src="https://docs.google.com/spreadsheets/d/1c_V5j27n6U4_9vR5K5L1iXYaGwVCf-C/edit?usp=sharing"></iframe>
+            <div class="form-group">
+                <label for="hourSelect">Wybierz godzinę rozpoczęcia:</label>
+                <select id="hourSelect" onchange="onHourChanged()" disabled>
+                    <option value="">-- Najpierw wybierz trasę --</option>
+                </select>
+            </div>
+
+            <button id="showScheduleBtn" class="btn-primary" onclick="showSchedule()" disabled>POKAŻ HARMONOGRAM</button>
+        </div>
     </div>
 
-    <div id="selectionScreen" class="filter-box">
-        <label for="routeSelect">WYBIERZ TRASĘ:</label>
-        <select id="routeSelect" onchange="updateHours()">
-            <option value="">-- Wybierz linię --</option>
-        </select>
-
-        <label for="timeSelect">WYBIERZ GODZINĘ (KURS):</label>
-        <select id="timeSelect">
-            <option value="">-- Najpierw wybierz trasę --</option>
-        </select>
-
-        <button onclick="showSchedule()">POKAŻ HARMONOGRAM</button>
+    <div id="scheduleScreen" class="hidden">
+        <button class="back-btn" onclick="goBackToSetup()">⬅️ Zmień trasę</button>
+        <div class="table-container">
+            <table id="scheduleTable">
+                <thead>
+                    <tr>
+                        <th>Przystanek</th>
+                        <th>Plan</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+        </div>
     </div>
 
-    <div id="scheduleScreen" style="display: none;">
-        <button class="back-btn" onclick="backToSelection()"><i class="fas fa-arrow-left"></i> ZMIEŃ KURS / POWRÓT</button>
-        
-        <div id="currentRouteInfo" class="route-info-header"></div>
-
-        <table id="scheduleTable">
-            <thead>
-                <tr>
-                    <th style="width: 25%;">Godzina / Status</th>
-                    <th style="width: 50%;">Przystanek</th>
-                    <th style="width: 25%;">Mapa</th>
-                </tr>
-            </thead>
-            <tbody id="scheduleTableBody"></tbody>
-        </table>
+    <div id="editSection" class="hidden">
+        <iframe src="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing"></iframe>
     </div>
-</div>
 
-<script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
-    const godzinyKolumn = ['06.00', '08.00', '10.00', '12.00', '14.00', '15.00', '16.00', '18.00'];
-    
-    let globalDb = [];
-    let wakeLock = null;
-    let updateInterval = null;
-    let gpsWatchId = null;
-    let userCoords = null; 
-    let distanceCache = {}; 
+    <script>
+        // Globalna zmienna na dane z bazy
+        let rawData = [];
+        let wakeLock = null;
 
-    window.addEventListener('DOMContentLoaded', () => {
-        loadData();
-        startGpsTracking(); 
-    });
+        // Indeksy kolumn oparte o strukturę tabeli bazy danych
+        const COL_ROUTE = 0; // Kolumna A
+        const COL_STOP = 1;  // Kolumna B
 
-    function startGpsTracking() {
-        if ("geolocation" in navigator) {
-            gpsWatchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    userCoords = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-                },
-                (error) => {
-                    console.error("Błąd GPS:", error);
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        }
-    }
+        // Dynamiczne wykrywanie dostępnych kolumn czasowych (od E wzwyż)
+        let godzinyKolumn = [];
 
-    async function loadData() {
-        const statusDiv = document.getElementById('status');
-        const cachedData = localStorage.getItem('portal_kierowcy_cache');
-        
-        if (cachedData) {
-            globalDb = JSON.parse(cachedData);
-            statusDiv.innerText = "Załadowano rozkład z pamięci podręcznej (Offline)";
-            populateRoutes();
-        }
-
-        try {
-            const response = await fetch(`${API_URL}?t=${Date.now()}`);
-            globalDb = await response.json();
-            localStorage.setItem('portal_kierowcy_cache', JSON.stringify(globalDb));
-            statusDiv.innerText = "Dane zsynchronizowane pomyślnie";
-            
-            const routeSelect = document.getElementById('routeSelect');
-            const selectedRoute = routeSelect.value;
-            
-            routeSelect.innerHTML = '<option value="">-- Wybierz linię --</option>';
-            populateRoutes();
-            
-            if (selectedRoute) {
-                routeSelect.value = selectedRoute;
-                updateHours();
-            }
-        } catch (error) {
-            console.error("Błąd pobierania danych z sieci:", error);
-            if (!cachedData) {
-                statusDiv.innerText = "Błąd połączenia. Brak danych w pamięci offline.";
-            }
-        }
-    }
-
-    function populateRoutes() {
-        const routeSelect = document.getElementById('routeSelect');
-        const unikalneTrasy = new Set();
-
-        globalDb.forEach((row, index) => {
-            if (index > 0 && row[0] && row[0].toString().trim() !== '' && row[0].toString().trim().toUpperCase() !== 'TRASA') {
-                unikalneTrasy.add(row[0].toString().trim());
-            }
-        });
-
-        unikalneTrasy.forEach(trasa => {
-            const option = document.createElement('option');
-            option.value = trasa;
-            option.innerText = trasa;
-            routeSelect.appendChild(option);
-        });
-    }
-
-    function updateHours() {
-        const routeSelect = document.getElementById('routeSelect').value;
-        const timeSelect = document.getElementById('timeSelect');
-        const currentSelectedTime = timeSelect.value;
-        
-        timeSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
-        
-        if (!routeSelect) {
-            timeSelect.innerHTML = '<option value="">-- Najpierw wybierz trasę --</option>';
-            return;
-        }
-
-        const aktywneGodziny = new Set();
-        
-        globalDb.forEach((row, index) => {
-            if (index > 0 && row[0] && row[0].toString().trim() === routeSelect) {
-                godzinyKolumn.forEach((godzina, gIdx) => {
-                    const colIndex = 4 + gIdx; 
-                    if (row[colIndex] && row[colIndex].toString().trim() !== '' && row[colIndex].toString().trim() !== '-') {
-                        aktywneGodziny.add(godzina);
-                    }
-                });
-            }
-        });
-
-        godzinyKolumn.forEach(godzina => {
-            if (aktywneGodziny.has(godzina)) {
-                const option = document.createElement('option');
-                option.value = godzina;
-                option.innerText = godzina;
-                timeSelect.appendChild(option);
-            }
-        });
-
-        if (currentSelectedTime && aktywneGodziny.has(currentSelectedTime)) {
-            timeSelect.value = currentSelectedTime;
-        }
-    }
-
-    function toggleEditSection() {
-        const editSec = document.getElementById('editSection');
-        if (editSec.style.display === 'none' || editSec.style.display === '') {
-            editSec.style.display = 'block';
-        } else {
-            editSec.style.display = 'none';
-        }
-    }
-
-    function showSchedule() {
-        const routeSelect = document.getElementById('routeSelect').value;
-        const timeSelect = document.getElementById('timeSelect').value;
-        const selectionScreen = document.getElementById('selectionScreen');
-        const scheduleScreen = document.getElementById('scheduleScreen');
-        const currentRouteInfo = document.getElementById('currentRouteInfo');
-        
-        if (!routeSelect || !timeSelect) {
-            alert('Wybierz trasę oraz godzinę przed pokazaniem rozkładu.');
-            return;
-        }
-
-        renderTableData(routeSelect, timeSelect);
-        
-        if (updateInterval) clearInterval(updateInterval);
-        updateInterval = setInterval(() => {
-            renderTableData(routeSelect, timeSelect);
-        }, 60000); 
-
-        currentRouteInfo.innerHTML = `<i class="fas fa-bus"></i> ${routeSelect} &nbsp;&nbsp;&nbsp; <i class="fas fa-clock"></i> Kurs: ${timeSelect}`;
-        selectionScreen.style.display = 'none';
-        scheduleScreen.style.display = 'block';
-    }
-
-    async function fetchGoogleETA(originCoords, destinationCoords) {
-        if (!originCoords) return null;
-        
-        const cacheKey = `${originCoords.lat},${originCoords.lng}-${destinationCoords}`;
-        if (distanceCache[cacheKey]) return distanceCache[cacheKey];
-
-        try {
-            const secureUrl = `${API_URL}?action=get_eta&origin=${originCoords.lat},${originCoords.lng}&destination=${encodeURIComponent(destinationCoords)}`;
-            const res = await fetch(secureUrl);
-            const data = await res.json();
-            
-            if (data.rows && data.rows[0].elements && data.rows[0].elements[0].status === "OK") {
-                const element = data.rows[0].elements[0];
-                const result = {
-                    distance: element.distance.text,
-                    durationText: element.duration_in_traffic ? element.duration_in_traffic.text : element.duration.text,
-                    durationSeconds: element.duration_in_traffic ? element.duration_in_traffic.value : element.duration.value
-                };
-                distanceCache[cacheKey] = result;
-                return result;
-            }
-        } catch (e) {
-            console.error("Błąd pobierania ETA:", e);
-        }
-        return null;
-    }
-
-    async function renderTableData(routeSelect, timeSelect) {
-        const tableBody = document.getElementById('scheduleTableBody');
-        const colIndex = 4 + AdministrativeColumnIndex(timeSelect);
-
-        const filteredRows = globalDb.filter((row, index) => {
-            if (index === 0) return false;
-            const isRoute = row[0] && row[0].toString().trim() === routeSelect;
-            const hasTime = row[colIndex] && row[colIndex].toString().trim() !== '' && row[colIndex].toString().trim() !== '-';
-            return isRoute && hasTime;
-        });
-
-        if (filteredRows.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Brak przystanków dla tego kursu</td></tr>';
-            return;
-        }
-
-        const teraz = new Date();
-        const obecneMinutyOdPolnocy = teraz.getHours() * 60 + teraz.getMinutes();
-
-        let indeksNajblizszego = -1;
-        let minimalnaRoznica = Infinity;
-
-        filteredRows.forEach((row, index) => {
-            const tStr = row[colIndex].toString().trim().replace('.', ':');
-            const parts = tStr.split(':');
-            if (parts.length === 2) {
-                const pMinuty = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                const roznica = pMinuty - obecneMinutyOdPolnocy;
-                
-                if (roznica >= 0 && roznica < minimalnaRoznica) {
-                    minimalnaRoznica = roznica;
-                    indeksNajblizszego = index;
-                }
-            }
-        });
-
-        if (indeksNajblizszego === -1) {
-            indeksNajblizszego = filteredRows.length - 1;
-        }
-
-        tableBody.innerHTML = '';
-
-        for (let index = 0; index < filteredRows.length; index++) {
-            const row = filteredRows[index];
-            const godzinaOdjazdu = row[colIndex].toString().trim();
-            const nazwaPrzystanku = row[1] ? row[1].toString().trim() : 'Nieznany przystanek';
-            const koordynaty = row[2] ? row[2].toString().trim() : '';
-
-            const tr = document.createElement('tr');
-            
-            if (index < indeksNajblizszego) {
-                tr.className = 'passed-stop';
-            } else if (index === indeksNajblizszego) {
-                tr.className = 'current-stop';
-            } else {
-                tr.className = 'next-stop';
-            }
-
-            let liveGpsHtml = "";
-            if (userCoords && koordynaty && (index === indeksNajblizszego || index === indeksNajblizszego + 1)) {
-                const etaData = await fetchGoogleETA(userCoords, koordynaty);
-                if (etaData) {
-                    const tStr = godzinaOdjazdu.replace('.', ':');
-                    const parts = tStr.split(':');
-                    let badgeHtml = "";
+        // Inicjalizacja pobierania danych bezpośrednio z GAS po uruchomieniu strony
+        window.onload = function() {
+            google.script.run
+                .withSuccessHandler(function(response) {
+                    rawData = response.data;
+                    godzinyKolumn = response.headers;
                     
-                    if (parts.length === 2) {
-                        const planowaneMinuty = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-                        const terazMinuty = teraz.getHours() * 60 + teraz.getMinutes();
-                        const spodziewanyPrzyjazdMinuty = terazMinuty + Math.ceil(etaData.durationSeconds / 60);
-                        const opoznienie = spodziewanyPrzyjazdMinuty - planowaneMinuty;
+                    document.getElementById('loadingMessage').classList.add('hidden');
+                    document.getElementById('formContent').classList.remove('hidden');
+                    populateRoutes();
+                })
+                .withFailureHandler(function(err) {
+                    document.getElementById('loadingMessage').innerText = "Błąd pobierania danych: " + err;
+                })
+                .getSheetData();
 
-                        if (opoznienie > 1) {
-                            badgeHtml = `<span class="status-badge status-delay">+${opoznienie} min opóźnienia</span>`;
-                        } else {
-                            badgeHtml = `<span class="status-badge status-ontime">Na czas</span>`;
-                        }
-                    }
+            // Interwał sprawdzania statusu przystanków (czas rzeczywisty w tabeli)
+            setInterval(updateStopHighlighting, 30000);
+        };
 
-                    liveGpsHtml = `
-                        <div class="live-info">
-                            <i class="fas fa-navigation"></i> ${etaData.distance} (${etaData.durationText})
-                            <br>${badgeHtml}
-                        </div>
-                    `;
+        // Tworzenie unikalnej listy tras w menu rozwijanym
+        function populateRoutes() {
+            const routeSelect = document.getElementById('routeSelect');
+            const uniqueRoutes = [...new Set(rawData.map(row => row[COL_ROUTE]))].filter(Boolean);
+
+            uniqueRoutes.forEach(route => {
+                const opt = document.createElement('option');
+                opt.value = route;
+                opt.textContent = route;
+                routeSelect.appendChild(opt);
+            });
+        }
+
+        // Reakcja na zmianę trasy - odblokowanie i załadowanie godzin
+        function onRouteChanged() {
+            const routeSelect = document.getElementById('routeSelect');
+            const hourSelect = document.getElementById('hourSelect');
+            const showBtn = document.getElementById('showScheduleBtn');
+
+            hourSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
+            hourSelect.disabled = true;
+            showBtn.disabled = true;
+
+            if (!routeSelect.value) return;
+
+            // Filtrujemy wiersze dla wybranej trasy
+            const filteredRows = rawData.filter(row => row[COL_ROUTE] === routeSelect.value);
+
+            // Sprawdzamy, które kolumny godzinowe mają przypisane czasy (brak "-")
+            let availableHours = [];
+            godzinyKolumn.forEach((hour, index) => {
+                const globalColumnIndex = index + 4; // Godziny zaczynają się od kolumny E (indeks 4)
+                const hasTimes = filteredRows.some(row => row[globalColumnIndex] && row[globalColumnIndex] !== '-');
+                if (hasTimes) {
+                    availableHours.push(hour);
                 }
-            }
+            });
 
-            let actionsHtml = `<span class="no-map">-</span>`;
-
-            if (koordynaty && koordynaty.includes(',')) {
-                actionsHtml = `
-                    <div class="actions-cell">
-                        <button class="action-icon-btn" onclick="navFromHere(${index}, '${routeSelect}', '${timeSelect}')" title="Nawiguj po całej trasie od tego miejsca">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
-                                <line x1="9" y1="3" x2="9" y2="18"></line>
-                                <line x1="15" y1="6" x2="15" y2="21"></line>
-                            </svg>
-                        </button>
-                        <button class="action-icon-btn" onclick="openSingleStop('${koordynaty}')" title="Pokaż tylko ten przystanek" style="color: #ff3333;">
-                            <svg viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                            </svg>
-                        </button>
-                    </div>
-                `;
-            }
-
-            tr.innerHTML = `
-                <td>
-                    <b>${godzinaOdjazdu}</b>
-                    ${liveGpsHtml}
-                </td>
-                <td>${nazwaPrzystanku}</td>
-                <td>${actionsHtml}</td>
-            `;
-            tableBody.appendChild(tr);
-        }
-    }
-
-    function AdministrativeColumnIndex(timeSelect) {
-        return godzinyKolumn.indexOf(timeSelect);
-    }
-
-    function navFromHere(clickedIndex, routeSelect, timeSelect) {
-        const colIndex = 4 + AdministrativeColumnIndex(timeSelect);
-        
-        const filteredRows = globalDb.filter((row, index) => {
-            if (index === 0) return false;
-            const isRoute = row[0] && row[0].toString().trim() === routeSelect;
-            const hasTime = row[colIndex] && row[colIndex].toString().trim() !== '' && row[colIndex].toString().trim() !== '-';
-            return isRoute && hasTime;
-        });
-
-        const remainingCoordinates = [];
-        for (let i = clickedIndex; i < filteredRows.length; i++) {
-            const coords = filteredRows[i][2] ? filteredRows[i][2].toString().trim() : '';
-            if (coords && coords.includes(',')) {
-                remainingCoordinates.push(coords);
-            }
-        }
-
-        if (remainingCoordinates.length === 0) {
-            alert('Brak poprawnych współrzędnych dla trasy.');
-            return;
-        }
-
-        const destination = remainingCoordinates[remainingCoordinates.length - 1];
-        let mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${encodeURIComponent(destination)}`;
-        
-        if (remainingCoordinates.length > 1) {
-            const waypointsList = remainingCoordinates.slice(0, -1);
-            mapsUrl += `&waypoints=${encodeURIComponent(waypointsList.join('|'))}`;
-        }
-        
-        window.open(mapsUrl, '_blank');
-    }
-
-    function openSingleStop(coords) {
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords)}`;
-        window.open(mapsUrl, '_blank');
-    }
-
-    function backToSelection() {
-        if (updateInterval) clearInterval(updateInterval);
-        document.getElementById('selectionScreen').style.display = 'block';
-        document.getElementById('scheduleScreen').style.display = 'none';
-    }
-
-    async function toggleWakeLock() {
-        const btn = document.getElementById('wakeLockBtn');
-        const txt = document.getElementById('wakeLockText');
-        
-        if (!wakeLock) {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                btn.classList.add('active');
-                txt.innerText = "EKRAN: ON";
-                
-                wakeLock.addEventListener('release', () => {
-                    wakeLock = null;
-                    btn.classList.remove('active');
-                    txt.innerText = "EKRAN: OFF";
+            if (availableHours.length > 0) {
+                availableHours.forEach(hour => {
+                    const opt = document.createElement('option');
+                    opt.value = hour;
+                    opt.textContent = hour;
+                    hourSelect.appendChild(opt);
                 });
-            } catch (err) {
-                console.error(`Nie udało się włączyć Wake Lock: ${err.name}, ${err.message}`);
+                hourSelect.disabled = false;
+            } else {
+                hourSelect.innerHTML = '<option value="">Brak godzin dla tej trasy</option>';
             }
-        } else {
-            wakeLock.release();
-            wakeLock = null;
-            btn.classList.remove('active');
-            txt.innerText = "EKRAN: OFF";
         }
-    }
-</script>
+
+        function onHourChanged() {
+            const hourSelect = document.getElementById('hourSelect');
+            document.getElementById('showScheduleBtn').disabled = !hourSelect.value;
+        }
+
+        // Generowanie i wyświetlanie tabeli harmonogramu
+        function showSchedule() {
+            const selectedRoute = document.getElementById('routeSelect').value;
+            const selectedHour = document.getElementById('hourSelect').value;
+            
+            const columnIndex = godzinyKolumn.indexOf(selectedHour) + 4; 
+            const filteredRows = rawData.filter(row => row[COL_ROUTE] === selectedRoute);
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+
+            filteredRows.forEach(row => {
+                const timeValue = row[columnIndex];
+                if (!timeValue || timeValue === '-') return; // Pomijamy puste/omijane przystanki
+
+                const tr = document.createElement('tr');
+                tr.dataset.time = timeValue; // Przechowujemy surowy czas do walidacji podświetlenia
+
+                const tdStop = document.createElement('td');
+                tdStop.textContent = row[COL_STOP];
+
+                const tdTime = document.createElement('td');
+                tdTime.textContent = timeValue;
+
+                tr.appendChild(tdStop);
+                tr.appendChild(tdTime);
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('scheduleScreen').classList.remove('hidden');
+            
+            // Uruchomienie natychmiastowego podświetlenia po wygenerowaniu tabeli
+            updateStopHighlighting();
+        }
+
+        function goBackToSetup() {
+            document.getElementById('scheduleScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
+        // Funkcja logiczna podświetlania obecnego i minionych przystanków
+        function updateStopHighlighting() {
+            const rows = document.querySelectorAll('#scheduleBody tr');
+            if (rows.length === 0) return;
+
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            let currentStopIndex = -1;
+
+            rows.forEach((row, index) => {
+                const timeStr = row.dataset.time;
+                if (!timeStr) return;
+
+                const [h, m] = timeStr.split(':').map(Number);
+                const stopMinutes = h * 60 + m;
+
+                // Usuwamy poprzednie klasy stylów przed ponowną kalkulacją
+                row.className = '';
+
+                if (currentMinutes >= stopMinutes) {
+                    currentStopIndex = index; // Potencjalnie ostatni miniony przystanek staje się "obecnym"
+                }
+            });
+
+            // Nadawanie klas na podstawie wyznaczonego indeksu obecnego przystanku
+            rows.forEach((row, index) => {
+                if (index < currentStopIndex) {
+                    row.classList.add('passed-stop');
+                } else if (index === currentStopIndex) {
+                    row.classList.add('current-stop');
+                } else if (index === currentStopIndex + 1) {
+                    row.classList.add('next-stop');
+                }
+            });
+        }
+
+        // Przełączanie blokady wygaszania ekranu (Wake Lock API)
+        async function toggleWakeLock() {
+            const statusLabel = document.getElementById('wakeLockStatus');
+
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+                statusLabel.textContent = "EKRAN: OFF";
+                statusLabel.classList.remove('active');
+                return;
+            }
+
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    statusLabel.textContent = "EKRAN: ON";
+                    statusLabel.classList.add('active');
+
+                    wakeLock.addEventListener('release', () => {
+                        if (wakeLock === null) {
+                            statusLabel.textContent = "EKRAN: OFF";
+                            statusLabel.classList.remove('active');
+                        }
+                    });
+                } else {
+                    alert("Twoja przeglądarka nie obsługuje blokady wygaszania ekranu.");
+                }
+            } catch (err) {
+                console.error(`Błąd Wake Lock: ${err.message}`);
+            }
+        }
+
+        // Pokazywanie / Ukrywanie sekcji administracyjnej
+        function toggleEditSection() {
+            const editSec = document.getElementById('editSection');
+            editSec.classList.toggle('hidden');
+            if (!editSec.classList.contains('hidden')) {
+                editSec.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    </script>
 </body>
 </html>
