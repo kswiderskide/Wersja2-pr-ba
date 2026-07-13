@@ -40,46 +40,41 @@
 </div> 
 
 <script>
-  // WLEJ TUTAJ SWÓJ LINK WEB APP Z GOOGLE APPS SCRIPT
   const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
   let db = [];
 
-  // Ładowanie danych
-  fetch(API_URL + "?nocache=" + new Date().getTime())
+  // 1. Pobieranie danych z filtrowaniem pustych tras
+  fetch(API_URL + "?t=" + new Date().getTime())
     .then(res => res.json())
     .then(data => {
       db = data;
       const rSel = document.getElementById('routeSelect');
-      const routes = [...new Set(data.slice(1).map(r => r[0]))];
+      
+      // Filtrujemy: bierzemy unikalne nazwy, odrzucamy puste i nagłówek "TRASA"
+      const routes = [...new Set(data.map(r => r[0]))]
+                    .filter(r => r && r !== "TRASA" && r.trim() !== "");
+      
       routes.forEach(r => rSel.add(new Option(r, r)));
     });
 
+  // 2. Poprawione wyświetlanie harmonogramu
   function showSchedule() {
     const r = document.getElementById('routeSelect').value;
     if(!r) return;
+    
     let html = '<table class="view-table"><tbody>';
-    db.slice(1).filter(row => row[0] === r).forEach(row => {
-      html += `<tr><td>${row[1]}</td><td class="cell-time">${row[2]}</td></tr>`;
+    
+    // Szukamy wierszy dla wybranej trasy
+    db.filter(row => row[0] === r).forEach(row => {
+      // row[1] to nazwa przystanku, row[2] to godzina (dostosuj indeksy, jeśli są inne)
+      html += `<tr>
+                <td>${row[1]}</td>
+                <td class="cell-time">${row[2] || '--'}</td>
+               </tr>`;
     });
+    
     document.getElementById('table-output').innerHTML = html + "</tbody></table>";
     document.getElementById('ui-view').style.display = "flex";
-  }
-
-  // Wake Lock
-  let wakeLock = null;
-  async function toggleWakeLock() {
-    if (!wakeLock) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      document.getElementById('bulb-icon').className = 'fas fa-lightbulb';
-      document.getElementById('wakeLockBtn').classList.add('wake-lock-active');
-      document.getElementById('bulb-text').innerText = 'ON';
-    } else {
-      await wakeLock.release();
-      wakeLock = null;
-      document.getElementById('bulb-icon').className = 'far fa-lightbulb';
-      document.getElementById('wakeLockBtn').classList.remove('wake-lock-active');
-      document.getElementById('bulb-text').innerText = 'OFF';
-    }
   }
 </script>
 </body>
