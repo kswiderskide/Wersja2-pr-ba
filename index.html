@@ -30,15 +30,18 @@
 <div id="table-output"></div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwy10Lf3qFb4ebHe-bEVQCcJ4ZYSUHbs4FfZ4XSfcvDckqh8aXH88gK62HX-fIVxliw/exec"; // Wklej link z Wdrożenia
+    // Wklej tutaj swój link:
+    const API_URL = "https://script.google.com/macros/s/AKfycbwy10Lf3qFb4ebHe-bEVQCcJ4ZYSUHbs4FfZ4XSfcvDckqh8aXH88gK62HX-fIVxliw/exec";
     let fullDb = [];
 
     async function init() {
-        const res = await fetch(API_URL + "?action=getData");
-        fullDb = await res.json();
-        const routes = [...new Set(fullDb.slice(1).map(r => r[0]))];
-        const rSel = document.getElementById('routeSelect');
-        routes.forEach(r => rSel.add(new Option(r, r)));
+        try {
+            const res = await fetch(API_URL + "?action=getData");
+            fullDb = await res.json();
+            const routes = [...new Set(fullDb.slice(1).map(r => r[0]))];
+            const rSel = document.getElementById('routeSelect');
+            routes.forEach(r => rSel.add(new Option(r, r)));
+        } catch(e) { console.error("Błąd ładowania danych:", e); }
     }
 
     function updateHours() {
@@ -52,7 +55,11 @@
     function showSchedule() {
         const route = document.getElementById('routeSelect').value;
         const hour = document.getElementById('hourSelect').value;
-        if (!route || !hour) return alert("Wybierz trasę i godzinę!");
+        
+        if (!route || !hour) {
+            alert("Wybierz najpierw trasę i godzinę!");
+            return;
+        }
 
         const filtered = fullDb.filter(r => r[0] === route && r[1] === hour);
         let html = '<table>';
