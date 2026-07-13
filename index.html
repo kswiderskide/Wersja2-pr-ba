@@ -25,7 +25,7 @@
             -webkit-user-select: none;
         }
 
-        /* NOWY UKŁAD NAGŁÓWKA */
+        /* NAGŁÓWEK APLIKACJI */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -61,7 +61,7 @@
             text-transform: uppercase;
         }
 
-        /* Przyciski w nagłówku */
+        /* Przyciski nagłówka */
         .header-btn {
             background: none;
             border: none;
@@ -85,7 +85,7 @@
             transform: scale(0.9);
         }
 
-        /* Styl dla aktywnego czuwania ekranu (ON) - jaskrawa żarówka */
+        /* Aktywna żarówka z poświatą */
         .header-btn.active {
             color: var(--accent-color);
         }
@@ -102,7 +102,7 @@
             letter-spacing: 1px;
         }
 
-        /* Reszta oryginalnych stylów Twojej aplikacji */
+        /* Struktura główna i kontenery */
         .container {
             padding: 15px;
             max-width: 800px;
@@ -115,6 +115,44 @@
             padding: 15px;
             margin-bottom: 15px;
             border: 1px solid var(--border-color);
+        }
+
+        /* FILTRY: WYBÓR TRASY I GODZINY */
+        .filters-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-group select {
+            background-color: #262626;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .filter-group select:focus {
+            border-color: var(--accent-color);
         }
 
         .route-title {
@@ -145,6 +183,7 @@
             letter-spacing: 1px;
         }
 
+        /* Statusy przystanków w trasie */
         .current-stop {
             background-color: rgba(204, 255, 51, 0.15);
             color: var(--accent-color);
@@ -166,7 +205,7 @@
             font-size: 1.2rem;
         }
 
-        /* Ukryty panel edycji rozkładów (sterowany zębatką) */
+        /* Panel edycji rozkładów (sterowany zębatką) */
         .admin-panel {
             display: none;
             background-color: var(--card-bg);
@@ -182,7 +221,7 @@
 
         .admin-panel iframe {
             width: 100%;
-            height: 400px;
+            height: 500px;
             border: none;
             background: #ffffff;
             border-radius: 4px;
@@ -223,20 +262,34 @@
                 <span>🛠️ Panel Edycji Rozkładów i Tras</span>
                 <button onclick="toggleEditMode()" style="background: var(--accent-color); border: none; padding: 5px 10px; cursor: pointer; font-weight: bold; border-radius: 4px;">Zamknij</button>
             </h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Poniżej możesz edytować godziny, przystanki oraz dodawać trasy bezpośrednio w arkuszu źródłowym:</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Modyfikuj godziny, przystanki oraz trasy bezpośrednio w zintegrowanym arkuszu:</p>
             <iframe src="https://docs.google.com/spreadsheets/d/140lW_72CWe6yI_4pM8bE-HymD1bC-e7S83Oenq8lOtc/edit?usp=sharing"></iframe>
         </section>
 
+        <div class="card filters-container">
+            <div class="filter-group">
+                <label for="routeSelect">Wybierz trasę:</label>
+                <select id="routeSelect" onchange="handleRouteLanguageChange()">
+                    <option value="">-- Wybierz trasę --</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="timeSelect">Godzina rozpoczęcia:</label>
+                <select id="timeSelect" onchange="filterData()">
+                    <option value="">-- Wybierz godzinę --</option>
+                </select>
+            </div>
+        </div>
+
         <div id="loading">Pobieranie aktualnego rozkładu jazdy...</div>
-        
         <div id="rozklad-kontener"></div>
     </div>
 
     <script>
-        // TWÓJ ORYGINALNY ADRES URL DO ARKUSZA GOOGLE
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec"; 
 
         let wakeLock = null;
+        let globalData = []; // Zmienna przechowująca pobrane dane rozkładu
 
         // 1. OBSŁUGA ŻARÓWKI (WAKE LOCK)
         async function toggleWakeLock() {
@@ -278,119 +331,180 @@
             cog.style.transform = adminPanel.classList.contains('open') ? 'rotate(90deg)' : 'rotate(0deg)';
         }
 
-        // Auto-przywracanie żarówki przy powrocie na kartę
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') {
                 wakeLock = await navigator.wakeLock.request('screen');
             }
         });
 
-        // 3. CAŁA TWOJA ORYGINALNA LOGIKA OPERACYJNA (POBIERANIE I GENEROWANIE DANYCH)
+        // 3. POBIERANIE DANYCH Z GOOGLE SHEETS
         async function zaciagnijDane() {
             try {
                 const response = await fetch(SCRIPT_URL);
                 const data = await response.json();
                 
-                // Zapisz do pamięci podręcznej (Cache) na wypadek braku internetu w trasie
                 localStorage.setItem('cachedRozklad', JSON.stringify(data));
                 localStorage.setItem('cachedRozkladTime', Date.now());
                 
-                renderujRozklad(data);
+                globalData = data;
+                initApp();
             } catch (error) {
-                console.error("Błąd pobierania danych online, próba odczytu z pamięci podręcznej...", error);
+                console.error("Błąd pobierania danych online, odczyt z pamięci...", error);
                 const cached = localStorage.getItem('cachedRozklad');
                 if (cached) {
-                    renderujRozklad(JSON.parse(cached));
+                    globalData = JSON.parse(cached);
+                    initApp();
                 } else {
                     document.getElementById('loading').innerText = "Brak połączenia z siecią i brak zapisanych danych offline.";
                 }
             }
         }
 
-        function renderujRozklad(data) {
-            const kontener = document.getElementById('rozklad-kontener');
+        // 4. INICJALIZACJA LIST WYBORU (SELECTÓW)
+        function initApp() {
             const loadingEl = document.getElementById('loading');
             if (loadingEl) loadingEl.style.display = 'none';
-            kontener.innerHTML = '';
 
-            if (!data || data.length === 0) {
-                kontener.innerHTML = '<div class="card">Brak dostępnych tras w arkuszu.</div>';
-                return;
-            }
+            const routeSelect = document.getElementById('routeSelect');
+            const zapamietanaTrasa = routeSelect.value;
 
-            // Grupowanie danych po nazwie trasy
-            const trasy = {};
-            data.forEach(wiersz => {
-                if (!trasy[wiersz.trasa]) {
-                    trasy[wiersz.trasa] = [];
-                }
-                trasy[wiersz.trasa].push(wiersz);
+            // Wyciąganie unikalnych nazw tras
+            const unikalneTrasy = [...new Set(globalData.map(item => item.trasa))];
+            
+            routeSelect.innerHTML = '<option value="">-- Wybierz trasę --</option>';
+            unikalneTrasy.forEach(trasa => {
+                const option = document.createElement('option');
+                option.value = trasa;
+                option.innerText = trasa;
+                routeSelect.appendChild(option);
             });
 
-            // Pobranie aktualnego czasu systemowego do oznaczania przystanków
-            const teraz = new Date();
-            const aktualneMinuty = teraz.getHours() * 60 + teraz.getMinutes();
-
-            for (const nazwaTrasy in trasy) {
-                const card = document.createElement('div');
-                card.className = 'card';
-
-                const title = document.createElement('h2');
-                title.className = 'route-title';
-                title.innerText = nazwaTrasy;
-                card.appendChild(title);
-
-                const table = document.createElement('table');
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th class="time-col">Godz.</th>
-                            <th>Przystanek</th>
-                        </tr>
-                    </thead>
-                `;
-                
-                const tbody = document.createElement('tbody');
-                let znalezionoBiezacy = false;
-
-                // Sortowanie wierszy w trasie chronologicznie po godzinie
-                trasy[nazwaTrasy].sort((a, b) => a.godzina.localeCompare(b.godzina));
-
-                trasy[nazwaTrasy].forEach((wiersz, index, arr) => {
-                    const tr = document.createElement('tr');
-                    
-                    const [godz, min] = wiersz.godzina.split(':').map(Number);
-                    const minutRozkladu = godz * 60 + min;
-
-                    // Określanie statusu przystanku na podstawie czasu
-                    let stanKlasa = 'next-stop';
-                    
-                    if (minutRozkladu < aktualneMinuty) {
-                        stanKlasa = 'passed-stop';
-                    } else if (!znalezionoBiezacy && minutRozkladu >= aktualneMinuty) {
-                        stanKlasa = 'current-stop';
-                        znalezionoBiezacy = true;
-                    }
-
-                    tr.className = stanKlasa;
-                    tr.innerHTML = `
-                        <td class="time-col">${wiersz.godzina}</td>
-                        <td>${wiersz.przystanek}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-
-                table.appendChild(tbody);
-                card.appendChild(table);
-                kontener.appendChild(card);
+            // Przywróć poprzedni wybór, jeśli istniał
+            if (zapamietanaTrasa && unikalneTrasy.includes(zapamietanaTrasa)) {
+                routeSelect.value = zapamietanaTrasa;
+                handleRouteLanguageChange();
+            } else {
+                filterData();
             }
         }
 
-        // Uruchomienie pobierania danych przy starcie aplikacji
+        // Wywoływane przy zmianie trasy -> ładuje powiązane z nią godziny startowe
+        function handleRouteLanguageChange() {
+            const selectedRoute = document.getElementById('routeSelect').value;
+            const timeSelect = document.getElementById('timeSelect');
+            const zapamietanaGodzina = timeSelect.value;
+
+            if (!selectedRoute) {
+                timeSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
+                filterData();
+                return;
+            }
+
+            // Filtrujemy dane dla tej trasy i szukamy najwcześniejszego przystanku (godziny startu kursu)
+            const wierszeTrasy = globalData.filter(item => item.trasa === selectedRoute);
+            
+            // Grupowanie po unikalnych godzinach rozpoczęcia kursów (pierwszy przystanek z serii)
+            // Zakładamy logikę unikalnych kursów na podstawie ich godzin w arkuszu
+            const unikalneGodziny = [...new Set(wierszeTrasy.map(item => item.godzinaStartu || item.godzina))].sort();
+
+            timeSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
+            unikalneGodziny.forEach(godz => {
+                const option = document.createElement('option');
+                option.value = godz;
+                option.innerText = godz;
+                timeSelect.appendChild(option);
+            });
+
+            if (zapamietanaGodzina && unikalneGodziny.includes(zapamietanaGodzina)) {
+                timeSelect.value = zapamietanaGodzina;
+            }
+
+            filterData();
+        }
+
+        // 5. FILTROWANIE I RENDEROWANIE TABELI DLA KIEROWCY
+        function filterData() {
+            const selectedRoute = document.getElementById('routeSelect').value;
+            const selectedTime = document.getElementById('timeSelect').value;
+            const kontener = document.getElementById('rozklad-kontener');
+            
+            kontener.innerHTML = '';
+
+            if (!selectedRoute) {
+                kontener.innerHTML = '<div class="card" style="text-align:center; color: var(--text-muted);">Proszę wybrać trasę z listy powyżej, aby zobaczyć rozkład.</div>';
+                return;
+            }
+
+            // Filtrujemy rekordy należące do wybranej trasy
+            let przefiltrowane = globalData.filter(item => item.trasa === selectedRoute);
+
+            // Jeśli wybrano też konkretną godzinę/kurs, filtrujemy dokładniej (zależnie od struktury danych Twojego arkusza)
+            if (selectedTime) {
+                // W zależności od struktury pliku "Trasy" - dopasowujemy rekordy kursu
+                przefiltrowane = przefiltrowane.filter(item => (item.godzinaStartu === selectedTime || item.godzina >= selectedTime));
+            }
+
+            if (przefiltrowane.length === 0) {
+                kontener.innerHTML = '<div class="card">Brak danych dla wybranego filtra.</div>';
+                return;
+            }
+
+            // Budowanie widoku karty z tabelą
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const title = document.createElement('h2');
+            title.className = 'route-title';
+            title.innerText = selectedRoute + (selectedTime ? ` - Start: ${selectedTime}` : '');
+            card.appendChild(title);
+
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th class="time-col">Godz.</th>
+                        <th>Przystanek</th>
+                    </tr>
+                </thead>
+            `;
+            
+            const tbody = document.createElement('tbody');
+            const teraz = new Date();
+            const aktualneMinuty = teraz.getHours() * 60 + teraz.getMinutes();
+            let znalezionoBiezacy = false;
+
+            // Sortowanie przystanków chronologicznie
+            przefiltrowane.sort((a, b) => a.godzina.localeCompare(b.godzina));
+
+            przefiltrowane.forEach((wiersz) => {
+                const tr = document.createElement('tr');
+                const [godz, min] = wiersz.godzina.split(':').map(Number);
+                const minutRozkladu = godz * 60 + min;
+
+                let stanKlasa = 'next-stop';
+                if (minutRozkladu < aktualneMinuty) {
+                    stanKlasa = 'passed-stop';
+                } else if (!znalezionoBiezacy && minutRozkladu >= aktualneMinuty) {
+                    stanKlasa = 'current-stop';
+                    znalezionoBiezacy = true;
+                }
+
+                tr.className = stanKlasa;
+                tr.innerHTML = `
+                    <td class="time-col">${wiersz.godzina}</td>
+                    <td>${wiersz.przystanek}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            card.appendChild(table);
+            kontener.appendChild(card);
+        }
+
+        // Inicjalizacja i pętla odświeżania co 30 sekund (dla podświetlania aktualnego przystanku)
         zaciagnijDane();
-        
-        // Automatyczne odświeżanie tabeli co 30 sekund, aby aktualizować podświetlenie przystanków
-        setInterval(zaciagnijDane, 30000);
+        setInterval(filterData, 30000);
     </script>
 </body>
 </html>
