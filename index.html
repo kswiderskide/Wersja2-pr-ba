@@ -4,655 +4,403 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Kierowcy</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent-color: #ccff33;
-            --text-color: #ffffff;
-            --text-muted: #aaaaaa;
-            --border-color: #333333;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f6f9;
+            --text-color: #333;
+            --card-bg: #fff;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        /* NAGŁÓWEK APLIKACJI */
-        .app-header {
+            padding: 10px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #262626;
-            padding: 12px 15px;
-            border-bottom: 2px solid var(--border-color);
-            position: relative;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .header-left, .header-right {
-            flex: 1;
-            display: flex;
+            flex-direction: column;
             align-items: center;
         }
 
-        .header-right {
-            justify-content: flex-end;
-        }
-
-        .header-center {
-            flex: 2;
-            text-align: center;
-        }
-
-        .header-center h1 {
-            color: var(--text-color);
-            font-size: 1.3rem;
-            margin: 0;
-            letter-spacing: 2px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        /* Przyciski w nagłówku */
-        .header-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .header-btn i {
-            font-size: 1.3rem;
-            transition: transform 0.2s ease;
-        }
-
-        /* Aktywna żarówka z poświatą */
-        .header-btn.active {
-            color: var(--accent-color);
-        }
-
-        .header-btn.active #bulbIcon {
-            font-weight: 900;
-            filter: drop-shadow(0 0 5px var(--accent-color)) drop-shadow(0 0 10px var(--accent-color));
-        }
-
-        #wakeLockStatus {
-            font-size: 0.75rem;
-            font-weight: bold;
-            font-family: 'Courier New', Courier, monospace;
-            letter-spacing: 1px;
-        }
-
-        /* Kontener główny */
         .container {
-            padding: 15px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-        }
-
-        /* FILTRY W UKŁADZIE PIONOWYM */
-        .filters-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-group label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .filter-group select {
-            background-color: #262626;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 14px;
-            font-size: 1.1rem;
-            border-radius: 6px;
-            outline: none;
-            cursor: pointer;
             width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
 
-        .filter-group select:focus {
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 24px;
+            margin-top: 5px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
             border-color: var(--accent-color);
         }
 
-        /* Przycisk Pokaż Harmonogram */
-        .submit-btn {
+        .btn-fetch {
+            width: 100%;
+            padding: 14px;
             background-color: var(--accent-color);
-            color: #000000;
+            color: white;
             border: none;
-            padding: 15px;
-            font-size: 1.1rem;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: bold;
-            border-radius: 6px;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             transition: background 0.2s;
         }
 
-        /* Przycisk powrotu w oknie rozkładu */
-        .back-btn {
-            background-color: #333333;
-            color: var(--text-color);
-            border: 1px solid #444;
-            padding: 10px 15px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 15px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+        .btn-fetch:hover {
+            background-color: #2980b9;
         }
 
-        .back-btn:hover {
-            background-color: #444;
-        }
-
-        /* Rozkład i nagłówki */
-        .route-info-banner {
-            color: var(--accent-color);
-            font-size: 1.2rem;
-            margin-top: 0;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            background: white;
+            font-size: 15px;
         }
 
         th, td {
-            padding: 14px 10px;
+            padding: 12px 10px;
             text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         th {
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
         }
 
-        /* Link/przycisk mapy */
-        .map-btn {
-            color: var(--accent-color);
-            background-color: rgba(204, 255, 51, 0.1);
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            border: 1px solid rgba(204, 255, 51, 0.3);
-            cursor: pointer;
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .map-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .btn-map, .btn-pin {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .map-btn:hover {
-            background-color: rgba(204, 255, 51, 0.25);
-        }
-
-        /* NOWE STYLE STATUSÓW PRZYSTANKÓW (ZGODNE Z PROŚBĄ) */
-        
-        /* 1. AKTUALNY PRZYSTANEK: Lekkie seledynowe podświetlenie tła i jasny tekst */
-        .current-stop {
-            background-color: rgba(204, 255, 51, 0.12); /* Lekkie podświetlenie tła */
-            color: var(--accent-color); /* Seledynowy jaskrawy tekst */
-            font-weight: bold;
-        }
-        
-        .current-stop .map-btn {
-            background-color: rgba(204, 255, 51, 0.25);
-            font-weight: bold;
-        }
-
-        /* 2. PRZYSZŁE PRZYSTANKI: Standardowe, białe wpisy */
-        .next-stop {
-            color: #ffffff;
-        }
-
-        /* 3. MINIONE PRZYSTANKI: Brak przekreślenia, zrobione na bledsze (opacity) */
-        .passed-stop {
-            color: #ffffff;
-            opacity: 0.35; /* Sprawia, że cały wiersz jest mocno bledszy i przygaszony */
-        }
-
-        .passed-stop .map-btn {
-            opacity: 0.5;
-            color: var(--text-muted);
-            border-color: #333;
-            background: none;
-            pointer-events: none; /* Blokada klikania minionych map */
-        }
-
-        .time-col {
-            width: 75px;
-            font-family: monospace;
-            font-size: 1.2rem;
-        }
-
-        /* Panel edycji (Zębatka) */
-        .admin-panel {
-            display: none;
-            background-color: var(--card-bg);
-            border: 2px dashed var(--accent-color);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-
-        .admin-panel.open {
-            display: block;
-        }
-
-        .admin-panel iframe {
-            width: 100%;
-            height: 500px;
-            border: none;
+            padding: 6px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
             background: #ffffff;
-            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-map:hover, .btn-pin:hover {
+            background: #f1f5f9;
+            transform: scale(1.05);
+        }
+
+        .btn-map:active, .btn-pin:active {
+            transform: scale(0.95);
+        }
+
+        .btn-map svg, .btn-pin svg {
+            width: 20px;
+            height: 20px;
+            display: block;
         }
 
         #loading {
             text-align: center;
+            font-weight: bold;
             color: var(--accent-color);
-            font-size: 1.2rem;
-            margin-top: 50px;
+            margin: 15px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="header-left">
-            <button id="wakeLockBtn" onclick="toggleWakeLock()" class="header-btn">
-                <i class="far fa-lightbulb" id="bulbIcon"></i>
-                <span id="wakeLockStatus">EKRAN: OFF</span>
-            </button>
-        </div>
+<div class="container">
+    <h1>Portal Kierowcy</h1>
 
-        <div class="header-center">
-            <h1>Portal Kierowcy</h1>
-        </div>
-
-        <div class="header-right">
-            <button id="adminBtn" onclick="toggleEditMode()" class="header-btn">
-                <i class="fas fa-cog"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="container">
-        <section id="adminPanel" class="admin-panel">
-            <h3 style="color: var(--accent-color); margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
-                <span>🛠️ Panel Edycji Rozkładów i Tras</span>
-                <button onclick="toggleEditMode()" style="background: var(--accent-color); border: none; padding: 5px 10px; cursor: pointer; font-weight: bold; border-radius: 4px;">Zamknij</button>
-            </h3>
-            <iframe src="https://docs.google.com/spreadsheets/d/140lW_72CWe6yI_4pM8bE-HymD1bC-e7S83Oenq8lOtc/edit?usp=sharing"></iframe>
-        </section>
-
-        <div id="filterBox" class="card filters-container">
-            <div class="filter-group">
-                <label for="routeSelect">Wybierz trasę:</label>
-                <select id="routeSelect" onchange="updateTimeSelect()">
-                    <option value="">-- Wybierz trasę --</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="timeSelect">Godzina rozpoczęcia:</label>
-                <select id="timeSelect">
-                    <option value="">-- Wybierz godzinę --</option>
-                </select>
-            </div>
-            <button class="submit-btn" onclick="showSchedule()">Pokaż harmonogram</button>
-        </div>
-
-        <div id="loading">Pobieranie aktualnego rozkładu jazdy...</div>
-
-        <div id="scheduleBox" style="display: none;">
-            <button class="back-btn" onclick="hideSchedule()">
-                <i class="fas fa-arrow-left"></i> < POWRÓT (ZMIEŃ KURS)
-            </button>
-            
-            <div class="card">
-                <div id="routeBanner" class="route-info-banner"></div>
-                <table id="timetable">
-                    <thead>
-                        <tr>
-                            <th class="time-col">Godz.</th>
-                            <th>Przystanek</th>
-                            <th style="width: 70px; text-align: center;">Nawiguj</th>
-                        </tr>
-                    </thead>
-                    <tbody id="timetableBody"></tbody>
-                </table>
-            </div>
-        </div>
+    <div class="form-group">
+        <label for="routeSelect">Wybierz trasę:</label>
+        <select id="routeSelect">
+            <option value="">-- Wybierz linię --</option>
+        </select>
     </div>
 
-    <script>
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec"; 
+    <div class="form-group">
+        <label for="hourSelect">Wybierz godzinę kursu:</label>
+        <select id="hourSelect" disabled>
+            <option value="">-- Najpierw wybierz trasę --</option>
+        </select>
+    </div>
 
-        let wakeLock = null;
-        let globalData = []; 
-        let currentPrzystankiList = []; 
+    <button class="btn-fetch" id="btnLoad">Wyświetl Rozkład</button>
 
-        // Wake Lock API (Żarówka)
-        async function toggleWakeLock() {
-            const btn = document.getElementById('wakeLockBtn');
-            const statusTxt = document.getElementById('wakeLockStatus');
-            const bulbIcon = document.getElementById('bulbIcon');
+    <div id="loading">Pobieranie danych z bazy...</div>
 
-            if (!wakeLock) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    btn.classList.add('active');
-                    statusTxt.innerText = 'EKRAN: ON';
-                    bulbIcon.className = 'fas fa-lightbulb'; 
-                    
-                    wakeLock.addEventListener('release', () => {
-                        wakeLock = null;
-                        btn.classList.remove('active');
-                        statusTxt.innerText = 'EKRAN: OFF';
-                        bulbIcon.className = 'far fa-lightbulb';
-                    });
-                } catch (err) {
-                    console.error(err);
-                }
+    <div class="table-responsive">
+        <table id="scheduleTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Przystanek</th>
+                    <th>Godzina</th>
+                    <th>Nawigacja / Punkt</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Wpisz tutaj swój prawdziwy identyfikator wdrożenia Web App z Google Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz_T5c4mC7M7XJzXh7Zp3mZl-V8-XYZ_REAL_ID/exec"; 
+
+    let globalData = [];
+
+    // Po załadowaniu strony pobieramy dostępne konfiguracje tras i godzin
+    window.addEventListener('DOMContentLoaded', async () => {
+        showLoading(true);
+        try {
+            const response = await fetch(`${SCRIPT_URL}?action=getRoutes`);
+            globalData = await response.json();
+            populateRoutes(globalData);
+        } catch (error) {
+            alert("Błąd podczas ładowania tras. Sprawdź połączenie internetowe.");
+            console.error(error);
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    function populateRoutes(data) {
+        const routeSelect = document.getElementById('routeSelect');
+        const routes = [...new Set(data.map(item => item.route))];
+        
+        routes.forEach(route => {
+            const opt = document.createElement('option');
+            opt.value = route;
+            opt.textContent = route;
+            routeSelect.appendChild(opt);
+        });
+    }
+
+    document.getElementById('routeSelect').addEventListener('change', function() {
+        const selectedRoute = this.value;
+        const hourSelect = document.getElementById('hourSelect');
+        hourSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
+        
+        if (!selectedRoute) {
+            hourSelect.disabled = true;
+            return;
+        }
+
+        const filteredHours = globalData.filter(item => item.route === selectedRoute);
+        filteredHours.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item.hour;
+            opt.textContent = item.hour;
+            hourSelect.appendChild(opt);
+        });
+        hourSelect.disabled = false;
+    });
+
+    document.getElementById('btnLoad').addEventListener('click', async () => {
+        const route = document.getElementById('routeSelect').value;
+        const hour = document.getElementById('hourSelect').value;
+
+        if (!route || !hour) {
+            alert("Proszę wybrać trasę oraz godzinę kursu.");
+            return;
+        }
+
+        showLoading(true);
+        document.getElementById('scheduleTable').style.display = 'none';
+
+        try {
+            const response = await fetch(`${SCRIPT_URL}?action=getSchedule&route=${encodeURIComponent(route)}&hour=${encodeURIComponent(hour)}`);
+            const schedule = await response.json();
+            renderSchedule(schedule, route, hour);
+        } catch (error) {
+            alert("Nie udało się pobrać rozkładu jazdy.");
+            console.error(error);
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    function renderSchedule(stops, currentRoute, currentHour) {
+        const tbody = document.getElementById('scheduleBody');
+        tbody.innerHTML = '';
+
+        if (stops.length === 0) {
+            alert("Brak danych rozkładowych dla wybranego kursu.");
+            return;
+        }
+
+        stops.forEach((stop, index) => {
+            const tr = document.createElement('tr');
+
+            // Komórka 1: Nazwa przystanku
+            const tdName = document.createElement('td');
+            tdName.textContent = stop.name || row[1]; // Dostosowane do struktury JSON/Array
+            tr.appendChild(tdName);
+
+            // Komórka 2: Godzina odjazdu
+            const tdTime = document.createElement('td');
+            tdTime.textContent = stop.time || '-';
+            tr.appendChild(tdTime);
+
+            // Komórka 3: Przyciski akcji (Trasa + Czysta Pineska)
+            const tdActions = document.createElement('td');
+            const actionContainer = document.createElement('div');
+            actionContainer.className = 'map-actions';
+
+            const coords = stop.coordinates ? stop.coordinates.trim() : '';
+
+            if (coords && coords !== '-') {
+                // Ikona 1: MAPA (Pełna trasa od obecnego punktu do pętli końcowej)
+                const btnMap = document.createElement('button');
+                btnMap.className = 'btn-map';
+                btnMap.title = "Nawiguj trasą do końca kursu";
+                btnMap.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                        <line x1="9" y1="3" x2="9" y2="18"></line>
+                        <line x1="15" y1="6" x2="15" y2="21"></line>
+                    </svg>
+                `;
+                btnMap.onclick = () => {
+                    // Wyciągamy tablicę samych współrzędnych dla całego kursu od tego miejsca w dół
+                    const allCoords = stops.map(s => s.coordinates);
+                    navFromHere(index, allCoords);
+                };
+
+                // Ikona 2: PINESKA (Minimalistyczna odwrócona łezka - tylko ten punkt)
+                const btnPin = document.createElement('button');
+                btnPin.className = 'btn-pin';
+                btnPin.title = "Pokaż tylko ten przystanek";
+                btnPin.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#e74c3c"/>
+                        <circle cx="12" cy="9" r="3" fill="#ffffff"/>
+                    </svg>
+                `;
+                btnPin.onclick = () => {
+                    openSingleStop(coords);
+                };
+
+                actionContainer.appendChild(btnMap);
+                actionContainer.appendChild(btnPin);
             } else {
-                await wakeLock.release();
-                wakeLock = null;
-                btn.classList.remove('active');
-                statusTxt.innerText = 'EKRAN: OFF';
-                bulbIcon.className = 'far fa-lightbulb';
+                actionContainer.textContent = '-';
             }
-        }
 
-        // Zębatka
-        function toggleEditMode() {
-            const adminPanel = document.getElementById('adminPanel');
-            adminPanel.classList.toggle('open');
-            const cog = document.querySelector('#adminBtn i');
-            cog.style.transform = adminPanel.classList.contains('open') ? 'rotate(90deg)' : 'rotate(0deg)';
-        }
-
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                wakeLock = await navigator.wakeLock.request('screen');
-            }
+            tdActions.appendChild(actionContainer);
+            tr.appendChild(tdActions);
+            tbody.appendChild(tr);
         });
 
-        // Pobieranie bazy danych
-        async function zaciagnijDane() {
-            try {
-                const response = await fetch(SCRIPT_URL);
-                let data = await response.json();
-                
-                if (data.odjazdy) data = data.odjazdy;
+        document.getElementById('scheduleTable').style.display = 'table';
+    }
 
-                localStorage.setItem('cachedRozkladMatrix', JSON.stringify(data));
-                globalData = data;
-                initApp();
-            } catch (error) {
-                console.error("Błąd sieci, próba cache...", error);
-                const cached = localStorage.getItem('cachedRozkladMatrix');
-                if (cached) {
-                    globalData = JSON.parse(cached);
-                    initApp();
-                } else {
-                    document.getElementById('loading').innerText = "Brak połączenia internetowego.";
-                }
-            }
+    // Funkcja wyznaczania TRASY (od aktualnej lokalizacji przez kliknięty punkt do końca)
+    function navFromHere(clickedIndex, allCoordinatesArray) {
+        const remainingCoordinates = allCoordinatesArray
+            .slice(clickedIndex)
+            .map(c => c ? c.trim() : '')
+            .filter(c => c !== '' && c !== '-');
+
+        if (remainingCoordinates.length === 0) {
+            alert("Brak poprawnych współrzędnych GPS.");
+            return;
         }
 
-        // Ładowanie tras (Kolumna A)
-        function initApp() {
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl) loadingEl.style.display = 'none';
+        const origin = "My+Location";
+        const destination = encodeURIComponent(remainingCoordinates[remainingCoordinates.length - 1]);
+        
+        let waypoints = "";
+        if (remainingCoordinates.length > 1) {
+            waypoints = remainingCoordinates.slice(0, -1).map(c => encodeURIComponent(c)).join("|");
+        }
 
-            const routeSelect = document.getElementById('routeSelect');
-            const zapamietanaTrasa = routeSelect.value;
+        let googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+        if (waypoints !== "") {
+            googleMapsUrl += `&waypoints=${waypoints}`;
+        }
+        googleMapsUrl += `&travelmode=driving`;
 
-            if (!globalData || globalData.length < 2) return;
+        window.open(googleMapsUrl, '_blank');
+    }
 
-            const trasyZArkusz = [];
-            for (let i = 1; i < globalData.length; i++) {
-                if (globalData[i] && globalData[i][0]) {
-                    trasyZArkusz.push(globalData[i][0]);
-                }
-            }
-            const unikalneTrasy = [...new Set(trasyZArkusz)].sort();
-            
-            routeSelect.innerHTML = '<option value="">-- Wybierz trasę --</option>';
-            unikalneTrasy.forEach(trasa => {
-                const option = document.createElement('option');
-                option.value = trasa;
-                option.innerText = trasa;
-                routeSelect.appendChild(option);
+    // NOWA FUNKCJA: Stawia TYLKO jedną pineskę bez żadnego routingu
+    function openSingleStop(coordinates) {
+        const cleanCoords = coordinates.trim();
+        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanCoords)}`;
+        window.open(googleMapsUrl, '_blank');
+    }
+
+    // Rejestracja Service Workera dla wsparcia PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => {
+                console.log('Service Worker registration failed: ', err);
             });
+        });
+    }
+</script>
 
-            if (zapamietanaTrasa && unikalneTrasy.includes(zapamietanaTrasa)) {
-                routeSelect.value = zapamietanaTrasa;
-                updateTimeSelect();
-            }
-        }
-
-        // Ładowanie godzin kursów (Od kolumny E wzwyż)
-        function updateTimeSelect() {
-            const selectedRoute = document.getElementById('routeSelect').value;
-            const timeSelect = document.getElementById('timeSelect');
-
-            if (!selectedRoute) {
-                timeSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
-                return;
-            }
-
-            const headerRow = globalData[0];
-            const dostepneKolumnyGodzin = [];
-
-            for (let col = 4; col < headerRow.length; col++) {
-                let kolumnaMaWpisy = false;
-                
-                for (let row = 1; row < globalData.length; row++) {
-                    if (globalData[row] && globalData[row][0] === selectedRoute) {
-                        const cellValue = globalData[row][col];
-                        if (cellValue && cellValue.trim() !== "" && cellValue.trim() !== "-") {
-                            kolumnaMaWpisy = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (kolumnaMaWpisy && headerRow[col]) {
-                    dostepneKolumnyGodzin.push({
-                        index: col,
-                        label: headerRow[col].toString().trim()
-                    });
-                }
-            }
-
-            timeSelect.innerHTML = '<option value="">-- Wybierz godzinę --</option>';
-            dostepneKolumnyGodzin.forEach(item => {
-                const option = document.createElement('option');
-                option.value = item.index;
-                option.innerText = `Kurs: ${item.label}`;
-                timeSelect.appendChild(option);
-            });
-        }
-
-        // Pokaż Harmonogram
-        function showSchedule() {
-            const selectedRoute = document.getElementById('routeSelect').value;
-            const colIndex = parseInt(document.getElementById('timeSelect').value);
-
-            if (!selectedRoute || isNaN(colIndex)) {
-                alert("Proszę wybrać trasę oraz godzinę kursu!");
-                return;
-            }
-
-            const headerRow = globalData[0];
-            const courseTimeLabel = headerRow[colIndex];
-
-            document.getElementById('filterBox').style.display = 'none';
-            document.getElementById('scheduleBox').style.display = 'block';
-
-            document.getElementById('routeBanner').innerHTML = `
-                <i class="fas fa-bus"></i> ${selectedRoute} 
-                <i class="fas fa-clock" style="margin-left:15px;"></i> Kurs: ${courseTimeLabel}
-            `;
-
-            renderTable(selectedRoute, colIndex);
-        }
-
-        function hideSchedule() {
-            document.getElementById('scheduleBox').style.display = 'none';
-            document.getElementById('filterBox').style.display = 'flex';
-        }
-
-        // Generowanie tabeli rozkładu
-        function renderTable(selectedRoute, colIndex) {
-            const tbody = document.getElementById('timetableBody');
-            tbody.innerHTML = '';
-
-            const teraz = new Date();
-            const aktualneMinutySystemu = teraz.getHours() * 60 + teraz.getMinutes();
-            let znalezionoBiezacy = false;
-
-            currentPrzystankiList = [];
-
-            for (let i = 1; i < globalData.length; i++) {
-                const wiersz = globalData[i];
-                if (wiersz && wiersz[0] === selectedRoute) {
-                    const godzinaWpisu = wiersz[colIndex] ? wiersz[colIndex].toString().trim() : "";
-                    
-                    if (godzinaWpisu && godzinaWpisu !== "" && godzinaWpisu !== "-") {
-                        currentPrzystankiList.push({
-                            godzina: godzinaWpisu,
-                            przystanek: wiersz[1], // Kolumna B
-                            koordynaty: wiersz[2]  // Kolumna C
-                        });
-                    }
-                }
-            }
-
-            // Sortowanie chronologiczne
-            currentPrzystankiList.sort((a, b) => {
-                return a.godzina.replace('.', ':').localeCompare(b.godzina.replace('.', ':'));
-            });
-
-            if (currentPrzystankiList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Brak danych odjazdów dla tego kursu.</td></tr>';
-                return;
-            }
-
-            currentPrzystankiList.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                const znormalizowanyCzas = item.godzina.replace('.', ':');
-                const [godz, min] = znormalizowanyCzas.split(':').map(Number);
-                const minutRozkladu = (godz * 60) + min;
-
-                // LOGIKA PRZYDZIELANIA STATUSÓW (BEZ PRZEKREŚLANIA)
-                let stanKlasa = 'next-stop';
-                if (minutRozkladu < aktualneMinutySystemu) {
-                    stanKlasa = 'passed-stop'; // Zrobi się bledszy w CSS
-                } else if (!znalezionoBiezacy && minutRozkladu >= aktualneMinutySystemu) {
-                    stanKlasa = 'current-stop'; // Podświetli się lekko na seledynowo
-                    znalezionoBiezacy = true;
-                }
-
-                tr.className = stanKlasa;
-                tr.innerHTML = `
-                    <td class="time-col">${item.godzina}</td>
-                    <td>${item.przystanek}</td>
-                    <td style="text-align: center;">
-                        ${(item.koordynaty && item.koordynaty.trim() !== "" && item.koordynaty.trim() !== "-") ? 
-                        `<button onclick="navFromHere(${index})" class="map-btn"><i class="fas fa-map-marked-alt"></i></button>` : '-'}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Automatyczne generowanie linku nawigacji multi-stop
-        function navFromHere(clickedIndex) {
-            let baseLink = "https://www.google.com/maps/dir/?api=1&origin=My+Location";
-            
-            const targetStop = currentPrzystankiList[clickedIndex];
-            baseLink += `&destination=${encodeURIComponent(targetStop.koordynaty.trim())}`;
-            
-            let waypoints = [];
-            for (let i = clickedIndex + 1; i < currentPrzystankiList.length; i++) {
-                const stop = currentPrzystankiList[i];
-                if (stop.koordynaty && stop.koordynaty.trim() !== "" && stop.koordynaty.trim() !== "-") {
-                    waypoints.push(stop.koordynaty.trim());
-                }
-            }
-            
-            if (waypoints.length > 0) {
-                baseLink += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
-            }
-
-            window.open(baseLink, '_blank');
-        }
-
-        // Start aplikacji i pętla zegarowa
-        zaciagnijDane();
-        setInterval(() => {
-            const filterBox = document.getElementById('filterBox');
-            if (filterBox.style.display === 'none') {
-                const selectedRoute = document.getElementById('routeSelect').value;
-                const colIndex = parseInt(document.getElementById('timeSelect').value);
-                if (selectedRoute && !isNaN(colIndex)) {
-                    renderTable(selectedRoute, colIndex);
-                }
-            }
-        }, 30000);
-    </script>
 </body>
 </html>
