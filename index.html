@@ -2,449 +2,65 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Kierowcy</title>
-    <link rel="icon" href="Tyliszczak.png" type="image/png">
-    <link rel="apple-touch-icon" href="Tyliszczak.png">
-    <link rel="manifest" href="app.webmanifest">
-    
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <meta name="theme-color" content="#1a1a1a">
     <style>
-        * { 
-            -webkit-touch-callout: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; 
-            -webkit-tap-highlight-color: transparent; box-sizing: border-box; margin: 0; padding: 0; 
-            font-family: Arial, sans-serif; 
-        }
-        body { background: #1a1a1a; color: #fff; padding-bottom: 30px; }
-        
-        /* Górny pasek menu */
-        header { 
-            background: #262626; padding: 15px; display: flex; justify-content: space-between; 
-            align-items: center; border-bottom: 1px solid #444; position: sticky; top: 0; z-index: 10; 
-        }
-        
-        /* Kontener Wake Lock (Żarówka) */
-        .wake-lock-container { cursor: pointer; text-align: center; color: #777; transition: color 0.3s; display: flex; flex-direction: column; align-items: center; }
-        .wake-lock-icon { font-size: 24px; }
-        .wake-lock-status { font-size: 9px; font-weight: 900; margin-top: 2px; color: #777; }
-        .wake-lock-active { color: #ccff33 !important; }
-        .wake-lock-active .wake-lock-status { color: #ccff33 !important; }
-
-        .app-title { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #fff; }
-        .settings-gear { font-size: 24px; color: #777; cursor: pointer; transition: transform 0.2s, color 0.3s; }
-        .settings-gear.active { transform: rotate(45deg); color: #ccff33; }
-        
-        /* Panel Administratora (Dopasowany do ciemnego motywu) */
-        .admin-panel { display: none; background: #2d2d1e; border-bottom: 2px solid #ccff33; padding: 15px; flex-direction: column; gap: 12px; }
-        body.edit-mode .admin-panel { display: flex; }
-        .admin-header { font-weight: bold; color: #ccff33; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #444; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
-        
-        .admin-routes-list { background: #1a1a1a; border-radius: 8px; border: 1px solid #444; max-height: 180px; overflow-y: auto; padding: 5px; }
-        .admin-route-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid #333; }
-        .admin-route-item:last-child { border-bottom: none; }
-        .admin-route-name { font-weight: bold; font-size: 0.9rem; color: #fff; }
-        .admin-route-actions { display: flex; gap: 5px; }
-
-        /* Filtry dla kierowców */
-        .filter-container { padding: 15px; background: #262626; border-bottom: 1px solid #444; display: flex; gap: 10px; align-items: center; }
-        .filter-container label { font-weight: bold; color: #777; text-transform: uppercase; font-size: 0.85rem; }
-        select { flex: 1; padding: 15px; border-radius: 8px; border: none; background: #eee; font-size: 16px; font-weight: bold; color: #000; text-align-last: center; }
-
-        /* Główna tabela z rozkładem jazdy */
-        .route-card { background: #262626; margin: 15px; border-radius: 8px; overflow: hidden; display: none; border: 1px solid #333; }
-        .route-card.active { display: block; }
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 750px; }
-        th, td { padding: 16px 10px; text-align: left; border-bottom: 1px solid #444; font-size: 15px; }
-        th { background: #1f1f1f; color: #777; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
-        
-        .maps-link { display: inline-block; padding: 8px 14px; background: #ccff33; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; }
-        .cell-time { text-align: center; font-weight: 900; color: #ccff33; font-size: 20px; }
-        
-        .edit-row-btn { display: none; background: #ff9800; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
-        body.edit-mode .edit-row-btn { display: inline-block; }
-        body.edit-mode .maps-link { display: none; }
-
-        /* Przyciski */
-        .btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; }
-        .btn-close { background: #444; color: #fff; }
-        .btn-save { background: #ccff33; color: #000; padding: 12px 24px; font-size: 0.95rem; }
-        .btn-admin { background: #ccff33; color: #000; }
-        .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
-        .btn-warn { background: #444; color: #fff; border: 1px solid #555; }
-
-        /* Modal edycji (Ciemny) */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
-        .modal.active { display: flex; }
-        .modal-content { background: #262626; width: 100%; max-width: 500px; border-radius: 12px; max-height: 90vh; overflow-y: auto; border: 1px solid #444; }
-        .modal-header { padding: 15px; background: #1f1f1f; border-bottom: 1px solid #444; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; color: #777; font-size: 0.85rem; font-weight: bold; text-transform: uppercase; }
-        .form-group input { width: 100%; padding: 12px; border: 1px solid #444; background: #1a1a1a; color: #fff; border-radius: 6px; font-size: 1rem; }
-        .grid-hours { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .modal-footer { padding: 15px; border-top: 1px solid #444; display: flex; justify-content: flex-end; gap: 10px; }
-
-        #loader { text-align: center; padding: 40px; color: #ccff33; font-weight: bold; font-size: 1.1rem; }
+        body { font-family: sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; }
+        .card { background: #262626; padding: 20px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td { padding: 12px; border-bottom: 1px solid #444; }
+        .btn { background: #ccff33; color: black; padding: 10px; border: none; cursor: pointer; font-weight: bold; }
+        #admin-panel { margin-top: 20px; border-top: 1px solid #555; padding-top: 20px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="wake-lock-container" id="wakeLockContainer" onclick="toggleWakeLock()">
-            <i class="fa-solid fa-lightbulb wake-lock-icon"></i>
-            <span class="wake-lock-status" id="wakeLockStatus">OFF</span>
-        </div>
-        
-        <div class="app-title">Portal Kierowcy</div>
-        
-        <i class="fa-solid fa-gear settings-gear" id="toggleEdit" onclick="toggleEditMode()"></i>
-    </header>
+<div class="card">
+    <h2>PORTAL KIEROWCY</h2>
+    <div id="data-container">Ładowanie tras...</div>
 
-    <div class="admin-panel" id="adminPanel">
-        <div class="admin-header">
-            <span>Menedżer Tras</span>
-            <button class="btn btn-admin btn-sm" onclick="createNewRoute()">➕ Nowa trasa</button>
-        </div>
-        <div class="admin-routes-list" id="adminRoutesList"></div>
-        <div style="display: flex; justify-content: flex-end;">
-            <button class="btn btn-admin" id="addStopBtn" onclick="openAddStopModal()">➕ Dodaj przystanek</button>
-        </div>
+    <div id="admin-panel">
+        <input type="password" id="admin-pass" placeholder="Hasło administratora">
+        <button class="btn" onclick="checkAdmin()">WEJDŹ DO EDYCJI</button>
     </div>
+</div>
 
-    <div class="filter-container">
-        <label for="routeSelect">Trasa:</label>
-        <select id="routeSelect" onchange="switchRoute()"></select>
-    </div>
+<script>
+    const API_URL = "TU_WKLEJ_SWOJ_URL_Z_GAS"; // <-- TUTAJ WKLEJ SWÓJ URL
 
-    <div id="loader">Pobieranie rozkładu jazdy...</div>
-    <div id="app-container"></div>
+    async function loadData() {
+        try {
+            const response = await fetch(API_URL + "?action=getData");
+            const data = await response.json();
+            renderTable(data);
+        } catch (e) {
+            document.getElementById('data-container').innerText = "Błąd połączenia z serwerem.";
+        }
+    }
 
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modalTitle" style="color: #ccff33;">Modyfikacja</h3>
-                <i class="fa-solid fa-xmark" style="font-size:20px; cursor:pointer;" onclick="closeModal()"></i>
-            </div>
-            <div class="modal-body">
-                <form id="editForm">
-                    <input type="hidden" id="formRowNum">
-                    <input type="hidden" id="formRouteName">
-                    <div class="form-group">
-                        <label>Nazwa Przystanku</label>
-                        <input type="text" id="formPrzystanek" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Współrzędne GPS</label>
-                        <input type="text" id="formGps">
-                    </div>
-                    <h4 style="margin: 15px 0 10px; font-size: 0.85rem; color: #777; font-weight: bold; text-transform: uppercase;">Godziny odjazdów</h4>
-                    <div class="grid-hours" id="hoursFormContainer"></div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-close" onclick="closeModal()">Anuluj</button>
-                <button class="btn btn-save" onclick="saveRowData()">Zapisz</button>
-            </div>
-        </div>
-    </div>
+    function renderTable(data) {
+        let html = '<table>';
+        data.forEach(row => {
+            html += `<tr><td>${row[0]}</td><td>${row[1] || '--'}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('data-container').innerHTML = html;
+    }
 
-    <script>
-        // PODMIEŃ NA SWÓJ AKTUALNY LINK Z GOOGLE APPS SCRIPT
-        const API_URL = "TUTAJ_WKLEJ_TWÓJ_LINK_Z_APPS_SCRIPT";
+    async function checkAdmin() {
+        const pass = document.getElementById('admin-pass').value;
+        const response = await fetch(API_URL + "?action=checkPassword&pass=" + encodeURIComponent(pass));
+        const result = await response.json();
         
-        const godzinyKolumn = ['06:00', '08:00', '10:00', '12:00', '14:00', '15:00', '16:00', '18:00'];
-        let lokalnaBazaDanych = [];
-        let sesjaHasloAdmina = "";
-        let wakeLock = null;
-
-        // --- OBSŁUGA SCREEN WAKE LOCK (ŻARÓWKA) ---
-        async function toggleWakeLock() {
-            const container = document.getElementById('wakeLockContainer');
-            if (!wakeLock) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    container.classList.add('wake-lock-active');
-                    document.getElementById('wakeLockStatus').innerText = "ON";
-                    
-                    wakeLock.addEventListener('release', () => {
-                        wakeLock = null;
-                        container.classList.remove('wake-lock-active');
-                        document.getElementById('wakeLockStatus').innerText = "OFF";
-                    });
-                } catch (err) {
-                    alert("Twoja przeglądarka lub urządzenie nie obsługuje blokady ekranu.");
-                }
-            } else {
-                wakeLock.release();
-                wakeLock = null;
-            }
+        if (result.success) {
+            alert("Hasło poprawne! Przekierowuję...");
+            window.open('https://script.google.com/macros/s/TWÓJ_LINK_DO_EDYCJI/exec', '_blank');
+        } else {
+            alert("Błędne hasło!");
         }
+    }
 
-        // --- POBIERANIE I STRUKTURYZACJA DANYCH ---
-        async function pobierzDaneZBazy() {
-            try {
-                document.getElementById('loader').style.display = 'block';
-                const response = await fetch(API_URL);
-                lokalnaBazaDanych = await response.json();
-                document.getElementById('loader').style.display = 'none';
-                
-                generujFiltryIRozklad();
-            } catch (e) {
-                document.getElementById('loader').innerText = "Błąd połączenia z siecią.";
-            }
-        }
-
-        function generujFiltryIRozklad() {
-            const select = document.getElementById('routeSelect');
-            const container = document.getElementById('app-container');
-            const adminRoutesList = document.getElementById('adminRoutesList');
-            
-            const aktualnyWybor = select.value;
-            select.innerHTML = '';
-            container.innerHTML = '';
-            adminRoutesList.innerHTML = '';
-
-            const trasy = [...new Set(lokalnaBazaDanych.map(item => item.TRASA))].filter(Boolean);
-            
-            trasy.forEach(trasa => {
-                const option = document.createElement('option');
-                option.value = trasa;
-                option.textContent = trasa;
-                select.appendChild(option);
-
-                const adminItem = document.createElement('div');
-                adminItem.className = 'admin-route-item';
-                adminItem.innerHTML = `
-                    <span class="admin-route-name">📌 ${trasa}</span>
-                    <div class="admin-route-actions">
-                        <button class="btn btn-sm btn-admin" onclick="selectRouteFromAdmin('${trasa}')">Zarządzaj</button>
-                        <button class="btn btn-sm btn-warn" onclick="renameRoutePrompt('${trasa}')">Nazwa</button>
-                    </div>
-                `;
-                adminRoutesList.appendChild(adminItem);
-
-                const card = document.createElement('div');
-                card.className = `route-card`;
-                card.id = `route-${trasa}`;
-                
-                let html = `
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Przystanek</th>
-                                    <th>Mapa</th>
-                                    ${godzinyKolumn.map(g => `<th style="text-align:center;">${g}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-
-                lokalnaBazaDanych.filter(item => item.TRASA === trasa).forEach(p => {
-                    const gps = p["F (Lokalizacja Maps)"] || '';
-                    const link = gps ? `<a class="maps-link" href="http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(gps)}" target="_blank"><i class="fa-solid fa-location-dot"></i> Mapa</a>` : '-';
-                    
-                    html += `
-                        <tr>
-                            <td style="font-weight:bold; color:#fff;">${p.PRZYSTANEK || '-'}</td>
-                            <td>
-                                ${link}
-                                <button class="edit-row-btn" onclick="openEditModal(${p.rowNum})"><i class="fa-solid fa-pen"></i></button>
-                            </td>
-                            ${godzinyKolumn.map(g => `<td class="cell-time">${p[g] || '-'}</td>`).join('')}
-                        </tr>
-                    `;
-                });
-
-                html += `</tbody></table></div>`;
-                card.innerHTML = html;
-                container.appendChild(card);
-            });
-
-            if(aktualnyWybor && trasy.includes(aktualnyWybor)) {
-                select.value = aktualnyWybor;
-            } else if (trasy.length > 0) {
-                select.value = trasy[0];
-            }
-            switchRoute();
-        }
-
-        function switchRoute() {
-            const val = document.getElementById('routeSelect').value;
-            document.querySelectorAll('.route-card').forEach(c => c.classList.remove('active'));
-            const activeCard = document.getElementById(`route-${val}`);
-            if(activeCard) activeCard.classList.add('active');
-            
-            const btn = document.getElementById('addStopBtn');
-            if(btn) btn.textContent = `➕ Dodaj przystanek do: ${val || ''}`;
-        }
-
-        function selectRouteFromAdmin(trasaNazwa) {
-            document.getElementById('routeSelect').value = trasaNazwa;
-            switchRoute();
-            document.getElementById(`route-${trasaNazwa}`).scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // --- LOGIKA ADMINISTRATORA (ZAPIS, EDYCJA, NOWE LINIE) ---
-        async function toggleEditMode() {
-            const gear = document.getElementById('toggleEdit');
-            
-            if (document.body.classList.contains('edit-mode')) {
-                document.body.classList.remove('edit-mode');
-                gear.classList.remove('active');
-                sesjaHasloAdmina = ""; 
-                alert("Panel edycji zamknięty.");
-                return;
-            }
-
-            const wpisaneHaslo = prompt("Podaj hasło systemu Integro:");
-            if (!wpisaneHaslo) return;
-
-            document.getElementById('loader').style.display = 'block';
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "verifyPassword", password: wpisaneHaslo })
-                });
-                const wynik = await response.json();
-                document.getElementById('loader').style.display = 'none';
-
-                if (wynik.status === "success") {
-                    sesjaHasloAdmina = wpisaneHaslo;
-                    document.body.classList.add('edit-mode');
-                    gear.classList.add('active');
-                } else {
-                    alert("Odmowa dostępu. Błędne klucz autoryzacji.");
-                }
-            } catch (e) {
-                document.getElementById('loader').style.display = 'none';
-                alert("Błąd autoryzacji sieciowej.");
-            }
-        }
-
-        async function renameRoutePrompt(staraNazwa) {
-            const nowaNazwa = prompt(`Zmień nazwę trasy "${staraNazwa}" we wszystkich rekordach:`, staraNazwa);
-            if (!nowaNazwa || nowaNazwa === staraNazwa) return;
-
-            document.getElementById('loader').style.display = 'block';
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: "renameRoute",
-                        password: sesjaHasloAdmina,
-                        oldName: staraNazwa,
-                        newName: nowaNazwa
-                    })
-                });
-                const wynik = await response.json();
-                if(wynik.status === "success") {
-                    document.getElementById('routeSelect').value = nowaNazwa;
-                    await pobierzDaneZBazy();
-                } else {
-                    alert("Błąd: " + wynik.message);
-                }
-            } catch(e) {
-                alert("Błąd sieci.");
-            }
-            document.getElementById('loader').style.display = 'none';
-        }
-
-        function openEditModal(rowNum) {
-            const wiersz = lokalnaBazaDanych.find(item => item.rowNum === rowNum);
-            if(!wiersz) return;
-
-            document.getElementById('modalTitle').innerText = "Edytuj Przystanek";
-            document.getElementById('formRowNum').value = rowNum;
-            document.getElementById('formRouteName').value = wiersz.TRASA;
-            document.getElementById('formPrzystanek').value = wiersz.PRZYSTANEK || '';
-            document.getElementById('formGps').value = wiersz["F (Lokalizacja Maps)"] || '';
-
-            buildHoursGrid(wiersz);
-            document.getElementById('editModal').classList.add('active');
-        }
-
-        function openAddStopModal() {
-            const aktualnaTrasa = document.getElementById('routeSelect').value;
-            if(!aktualnaTrasa) return;
-
-            document.getElementById('modalTitle').innerText = "Nowy Przystanek";
-            document.getElementById('formRowNum').value = ""; 
-            document.getElementById('formRouteName').value = aktualnaTrasa;
-            document.getElementById('formPrzystanek').value = "";
-            document.getElementById('formGps').value = "";
-
-            buildHoursGrid({});
-            document.getElementById('editModal').classList.add('active');
-        }
-
-        function createNewRoute() {
-            const nowaNazwa = prompt("Podaj nazwę nowej linii transportowej:");
-            if(!nowaNazwa) return;
-            
-            document.getElementById('modalTitle').innerText = "Inicjalizacja Pierwszego Przystanku";
-            document.getElementById('formRowNum').value = ""; 
-            document.getElementById('formRouteName').value = nowaNazwa;
-            document.getElementById('formPrzystanek').value = "Przystanek Początkowy";
-            document.getElementById('formGps').value = "";
-
-            buildHoursGrid({});
-            document.getElementById('editModal').classList.add('active');
-        }
-
-        function buildHoursGrid(dataSrc) {
-            const hoursContainer = document.getElementById('hoursFormContainer');
-            hoursContainer.innerHTML = '';
-            godzinyKolumn.forEach(g => {
-                hoursContainer.innerHTML += `
-                    <div class="form-group">
-                        <label>${g}</label>
-                        <input type="text" class="input-godzina" data-hour="${g}" value="${dataSrc[g] || ''}" placeholder="-">
-                    </div>
-                `;
-            });
-        }
-
-        function closeModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
-
-        async function saveRowData() {
-            const rowNum = document.getElementById('formRowNum').value;
-            const trasa = document.getElementById('formRouteName').value;
-            
-            const payload = {
-                password: sesjaHasloAdmina,
-                "TRASA": trasa,
-                "PRZYSTANEK": document.getElementById('formPrzystanek').value,
-                "F (Lokalizacja Maps)": document.getElementById('formGps').value
-            };
-
-            if (rowNum) { payload.rowNum = rowNum; } else { payload.action = "addRow"; }
-
-            document.querySelectorAll('.input-godzina').forEach(input => {
-                payload[input.dataset.hour] = input.value;
-            });
-
-            closeModal();
-            document.getElementById('loader').style.display = 'block';
-
-            try {
-                const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-                await response.json();
-                document.getElementById('routeSelect').value = trasa;
-                await pobierzDaneZBazy();
-            } catch (e) {
-                alert("Błąd zapisu.");
-                document.getElementById('loader').style.display = 'none';
-            }
-        }
-
-        // Automatyczny start pobierania bazy przy otwarciu
-        pobierzDaneZBazy();
-    </script>
+    loadData();
+</script>
 </body>
 </html>
