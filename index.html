@@ -143,6 +143,18 @@
       width: 24px; height: 24px; -webkit-tap-highlight-color: transparent;
     }
 
+    .btn-manual-check {
+      background-color: #333;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
     .modal {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 999;
@@ -165,7 +177,7 @@
   <div class="header-container">
     <button id="wakeLockBtn" class="icon-btn wake-lock-off" onclick="toggleWakeLock()">
       <svg width="22" height="22" viewBox="0 0 24 24">
-        <path d="M12 2C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2 19c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-1h4v1zm-3-3h2v1h-2v-1z"/>
+        <path d="M12 2C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2 19c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-1h4v1zm-3-3h2v1-2v-1z"/>
       </svg>
       <span class="status-txt" style="font-size: 11px;">EKRAN: <span id="wakeLockStatus">OFF</span></span>
     </button>
@@ -224,6 +236,7 @@
     let currentCoords = null;
     let selectedRouteGlobal = "";
     let selectedHourGlobal = "";
+    let manualActiveIndex = null; // Ręcznie ustawiony zaliczony przystanek
 
     document.addEventListener("DOMContentLoaded", function() {
       fetch(`${API_URL}?action=getSheetData`)
@@ -239,7 +252,8 @@
     });
 
     document.addEventListener('visibilitychange', async () => {
-      if (wakeLock !== null && document.visibilityState === 'visible') {
+      const statusText = document.getElementById("wakeLockStatus").textContent;
+      if (wakeLock !== null && document.visibilityState === 'visible' && statusText === "ON") {
         try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
       }
     });
@@ -312,6 +326,7 @@
     function showScheduleView() {
       selectedRouteGlobal = document.getElementById("routeSelect").value;
       selectedHourGlobal = document.getElementById("hourSelect").value;
+      manualActiveIndex = null; // reset ręcznego sterowania trasy przy nowym kursie
       
       document.getElementById("filter-box").style.display = "none";
       document.getElementById("schedule-view").style.display = "block";
@@ -348,7 +363,8 @@
       });
 
       validStops.forEach((stop, index) => {
-        let singlePinUrl = stop.coords ? `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(stop.coords)}` : "";
+        // Poprawiono URL do oficjalnego linku Google Maps (Pinezka)
+        let singlePinUrl = stop.coords ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}` : "";
         let dynamicMapUrl = "";
 
         if (stop.coords) {
@@ -359,8 +375,11 @@
             let start = currentCoords ? `${currentCoords.lat},${currentCoords.lng}` : remaining[0].coords;
             if (!currentCoords && wps.length > 0) wps.shift();
 
-            dynamicMapUrl = `http://googleusercontent.com/maps.google.com/?saddr=${encodeURIComponent(start)}&daddr=${encodeURIComponent(dest)}`;
-            if (wps.length > 0) dynamicMapUrl += `&waypoints=${encodeURIComponent(wps.join('|'))}`;
+            // Poprawiono format URL wielopunktowego Google Maps
+            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(start)}&destination=${encodeURIComponent(dest)}`;
+            if (wps.length > 0) {
+              dynamicMapUrl += `&waypoints=${encodeURIComponent(wps.join('|'))}`;
+            }
           }
         }
 
@@ -376,6 +395,7 @@
                 </svg>
               </a>` : ''}
             <span class="stop-name">${stop.name}</span>
+            <button class="btn-manual-check" onclick="manualCheckStop(${index})">Zalicz</button>
           </div>
           <div class="stop-timing-block">
             <span class="stop-time">${stop.time}</span>
@@ -394,6 +414,14 @@
       });
     }
 
+    function manualCheckStop(index) {
+      manualActiveIndex = index + 1; // Przełącz na kolejny przystanek
+      if (manualActiveIndex >= validStops.length) {
+        manualActiveIndex = validStops.length - 1; // Nie wychodź poza indeks
+      }
+      triggerBackendETACalculation();
+    }
+
     function triggerBackendETACalculation() {
       if (validStops.length === 0) return;
       
@@ -402,7 +430,8 @@
         hour: selectedHourGlobal,
         driverLat: currentCoords ? currentCoords.lat : null,
         driverLng: currentCoords ? currentCoords.lng : null,
-        stops: validStops
+        stops: validStops,
+        manualActiveIndex: manualActiveIndex
       };
 
       fetch(`${API_URL}?action=calculateLiveETA&data=${encodeURIComponent(JSON.stringify(payload))}`)
