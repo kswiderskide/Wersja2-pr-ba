@@ -162,7 +162,6 @@
       margin: 20px auto;
     }
     
-    /* NOWY STYL KARTY PRZYSTANKU DOPASOWANY DO KOLEJNOŚCI */
     .stop-card {
       background-color: var(--card-bg);
       border-left: 4px solid var(--accent);
@@ -177,9 +176,9 @@
     .stop-main-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       flex-grow: 1;
-      min-width: 0; /* Zabezpieczenie przed ucinaniem tekstu */
+      min-width: 0;
     }
     .stop-name { 
       font-size: 15px; 
@@ -192,24 +191,28 @@
       font-size: 14px; 
       color: var(--accent); 
       font-weight: bold;
-      margin-left: auto; /* Przesuwa godzinę do środka/prawa przed końcową ikoną trasy */
+      margin-left: auto;
       white-space: nowrap;
       padding-right: 5px;
     }
     .pin-link, .map-link {
       text-decoration: none;
-      font-size: 18px;
-      padding: 6px 10px;
+      padding: 6px;
       background-color: #2b2b2b;
-      border-radius: 4px;
+      border-radius: 6px;
       border: 1px solid #444;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       -webkit-tap-highlight-color: transparent;
+      width: 24px;
+      height: 24px;
     }
     .pin-link:active, .map-link:active {
       background-color: #444;
+    }
+    .pin-link svg, .map-link svg {
+      display: block;
     }
 
     .modal {
@@ -293,6 +296,7 @@
 
     let headers = [];
     let rawData = [];
+    let MAPS_API_KEY = ""; // Zmienna przechowująca pobrany klucz API
     let clockInterval = null;
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -303,8 +307,12 @@
             alert("Błąd bazy danych: " + data.error);
             return;
           }
-          headers = data[0]; 
-          rawData = data.slice(1); 
+          
+          // MAPOWANIE Z NOWEJ STRUKTURY ZWROTNEJ Z SERWERA GAS
+          headers = data.rows[0]; 
+          rawData = data.rows.slice(1); 
+          MAPS_API_KEY = data.googleMapsApiKey || ""; // Zapisanie klucza API do zmiennej
+          
           populateRoutes();
         })
         .catch(err => {
@@ -410,6 +418,7 @@
       document.getElementById("filter-box").style.display = "block";
     }
 
+    // Wykorzystanie klucza API w linkach nawigacji (opcjonalne użycie oficjalnego API zamiast linków uniwersalnych)
     function renderSchedule(selectedRoute, selectedHour) {
       const container = document.getElementById("schedule-container");
       container.innerHTML = "";
@@ -430,13 +439,16 @@
             let mapUrl = row[3];    
             const coords = row[2];  
 
-            // Tworzenie linku dla pineski awaryjnej (tylko pojedyncza lokalizacja)
             let singlePinUrl = "";
             if (coords && coords.trim() !== "") {
-              singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
+              // Jeżeli klucz API jest dostępny, możemy użyć struktury z kluczem, w przeciwnym wypadku standardowy link
+              if (MAPS_API_KEY) {
+                singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}&key=${MAPS_API_KEY}`;
+              } else {
+                singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
+              }
             }
 
-            // Zapobieganie pustej trasie ogólnej
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
               mapUrl = singlePinUrl;
             }
@@ -444,14 +456,24 @@
             const card = document.createElement("div");
             card.className = "stop-card";
             
-            // BUDOWANIE NOWEJ STRUKTURY KARTY WEDŁUG WYTYCZNYCH
             card.innerHTML = `
               <div class="stop-main-info">
                 <span class="stop-name">${stopName}</span>
-                ${singlePinUrl ? `<a href="${singlePinUrl}" target="_blank" class="pin-link" title="Pokaż punkt">📍</a>` : ''}
+                ${singlePinUrl ? `
+                  <a href="${singlePinUrl}" target="_blank" class="pin-link" title="Pokaż punkt">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-130-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ff3333"/>
+                    </svg>
+                  </a>` : ''}
               </div>
               <span class="stop-time">Odjazd: ${stopTime}</span>
-              ${mapUrl ? `<a href="${mapUrl}" target="_blank" class="map-link" title="Nawiguj do trasy">🗺️</a>` : ''}
+              ${mapUrl ? `
+                <a href="${mapUrl}" target="_blank" class="map-link" title="Nawiguj do trasy">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 15c1.38 0 2.5-1.12 2.5-2.5S5.38 10 4 10s-2.5 1.12-2.5 2.5S2.62 15 4 15zm16-5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5S21.38 10 20 10zm-6 8c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zM6.5 12.5h5v-3h-5v3zm7.5-6h3.5v-3H14v3zm-4.5 10v3h4v-3h-4z" fill="#00ffcc"/>
+                    <path d="M19 3.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM12 6.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#00ffcc"/>
+                  </svg>
+                </a>` : ''}
             `;
             container.appendChild(card);
           }
