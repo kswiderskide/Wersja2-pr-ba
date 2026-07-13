@@ -9,10 +9,12 @@
       --bg-color: #121212;
       --card-bg: #1e1e1e;
       --accent: #00ffcc;
+      --accent-dim: rgba(0, 255, 204, 0.15);
       --text: #ffffff;
       --text-muted: #aaaaaa;
       --bulb-on: #ffcc00; 
       --bulb-off: #aaaaaa;
+      --danger: #ff4d4d;
     }
     body {
       background-color: var(--bg-color);
@@ -172,7 +174,16 @@
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+      transition: background-color 0.4s ease, border-color 0.4s ease;
     }
+    
+    /* Klasa podświetlenia aktywnego przystanku */
+    .stop-card.active-stop {
+      background-color: var(--accent-dim);
+      border-left: 6px solid var(--accent);
+      box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+    }
+
     .stop-main-info {
       display: flex;
       align-items: center;
@@ -187,14 +198,39 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    
+    .stop-timing-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      margin-left: auto;
+      text-align: right;
+    }
+
     .stop-time { 
       font-size: 14px; 
       color: var(--accent);
       font-weight: bold;
-      margin-left: auto;
       white-space: nowrap;
-      padding-right: 5px;
     }
+
+    .eta-badge {
+      font-size: 11px;
+      margin-top: 3px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .eta-badge.on-time {
+      background-color: rgba(0, 255, 204, 0.2);
+      color: var(--accent);
+    }
+    .eta-badge.delayed {
+      background-color: rgba(255, 77, 77, 0.2);
+      color: var(--danger);
+    }
+
     .pin-link, .map-link {
       text-decoration: none;
       padding: 6px;
@@ -297,8 +333,12 @@
 
     let headers = [];
     let rawData = [];
+    let googleMapsApiKey = "";
+    let validStops = [];
     let clockInterval = null;
+    let gpsWatchId = null;
     let wakeLock = null;
+    let currentCoords = null;
 
     document.addEventListener("DOMContentLoaded", function() {
       fetch(API_URL)
@@ -311,8 +351,10 @@
           
           headers = data.rows[0]; 
           rawData = data.rows.slice(1); 
+          googleMapsApiKey = data.googleMapsApiKey || "";
           
           populateRoutes();
+          initGpsTracking();
         })
         .catch(err => {
           alert("Błąd połączenia sieciowego: " + err);
@@ -336,6 +378,31 @@
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const seconds = String(now.getSeconds()).padStart(2, '0');
       document.getElementById("liveClock").textContent = `${hours}:${minutes}:${seconds}`;
+      
+      // Co minutę aktualizuj stan zbliżania i kalkulację ETA na podstawie czasu i pozycji
+      if (seconds === "00") {
+        evaluateCurrentStop();
+      }
+    }
+
+    function initGpsTracking() {
+      if ("geolocation" in navigator) {
+        gpsWatchId = navigator.geolocation.watchPosition(
+          (position) => {
+            currentCoords = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            evaluateCurrentStop();
+          },
+          (error) => {
+            console.warn("Błąd pobierania pozycji GPS: ", error.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        console.error("Geolokalizacja nie jest wspierana przez tę przeglądarkę.");
+      }
     }
 
     function populateRoutes() {
@@ -349,7 +416,6 @@
           routes.push(routeName);
         }
       });
-
       routes.forEach(r => {
         let opt = document.createElement("option");
         opt.value = r;
@@ -386,7 +452,6 @@
           }
         }
       });
-
       let sortedHours = Array.from(activeHours).sort();
 
       sortedHours.forEach(h => {
@@ -428,6 +493,7 @@
     function renderSchedule(selectedRoute, selectedHour) {
       const container = document.getElementById("schedule-container");
       container.innerHTML = "";
+      validStops = [];
 
       let hourColumnIndex = headers.findIndex(h => h && h.trim() === selectedHour.trim());
       if (hourColumnIndex === -1) {
@@ -435,7 +501,6 @@
         return;
       }
 
-      let validStops = [];
       rawData.forEach(row => {
         if (row[0] === selectedRoute) {
           let stopTime = row[hourColumnIndex];
@@ -446,7 +511,8 @@
             validStops.push({
               name: stopName,
               time: stopTime,
-              coords: coords ? coords.trim() : ""
+              coords: coords ? coords.trim() : "",
+              latLng: parseCoords(coords)
             });
           }
         }
@@ -457,16 +523,25 @@
         let dynamicMapUrl = "";
 
         if (stop.coords) {
+          // Pojedynczy punkt (stara logika zachowana dla pinezki)
           singlePinUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.coords)}`;
 
+          // Trasa od obecnej pozycji GPS do klikniętego przystanku i wszystkich NASTĘPNYCH
           let remainingStops = validStops.slice(index).filter(s => s.coords !== "");
 
           if (remainingStops.length > 0) {
-            let origin = remainingStops[0].coords; 
-            let destination = remainingStops[remainingStops.length - 1].coords; 
-            let waypoints = remainingStops.slice(1, -1).map(s => s.coords);
+            let destination = remainingStops[remainingStops.length - 1].coords;
+            let waypoints = remainingStops.slice(0, -1).map(s => s.coords);
 
-            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+            // Wyznaczanie punktu startowego: preferuj aktualny GPS, alternatywnie pierwszy przystanek paczki pozostałych
+            let startOrigin = currentCoords ? `${currentCoords.lat},${currentCoords.lng}` : remainingStops[0].coords;
+
+            // Jeśli użyliśmy GPS jako origin, pierwszy przystanek staje się waypointem
+            if (!currentCoords && waypoints.length > 0) {
+              waypoints.shift(); // usuń z waypointów, bo jest punktem startowym
+            }
+
+            dynamicMapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(startOrigin)}&destination=${encodeURIComponent(destination)}`;
             
             if (waypoints.length > 0) {
               dynamicMapUrl += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
@@ -476,6 +551,7 @@
 
         const card = document.createElement("div");
         card.className = "stop-card";
+        card.id = `stop-card-${index}`;
         card.innerHTML = `
           <div class="stop-main-info">
             ${singlePinUrl ?
@@ -487,12 +563,19 @@
               </a>` : ''}
             <span class="stop-name">${stop.name}</span>
           </div>
-          <span class="stop-time">Odjazd: ${stop.time}</span>
+          
+          <div class="stop-timing-block">
+            <span class="stop-time">Odjazd: ${stop.time}</span>
+            <span id="eta-${index}" class="eta-badge" style="display:none;">Obliczanie...</span>
+          </div>
+
           ${dynamicMapUrl ?
           `
-            <a href="${dynamicMapUrl}" target="_blank" class="map-link" title="Rozpocznij trasę od tego miejsca do końca kursu">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14.5V13h-4v3H7v-5c0-.55.45-1 1-1h5V6.5l5 4.5-5 5.5z" fill="#00ffcc"/>
+            <a href="${dynamicMapUrl}" target="_blank" class="map-link" title="Rozpocznij trasę od Twojej pozycji przez ten przystanek do końca kursu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00ffcc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM19 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" fill="#00ffcc"/>
+                <path d="M5 14c2-3 4-5 7-2s5 1 7-4" stroke-dasharray="1 1" />
+                <path d="M5 14c2-3 4-5 7-2s5 1 7-4" fill="none" />
               </svg>
             </a>` : ''}
         `;
@@ -501,7 +584,149 @@
 
       if (container.children.length === 0) {
         container.innerHTML = "<p style='text-align:center;'>Brak zdefiniowanych przystanków na tę godzinę.</p>";
+      } else {
+        // Po wyrenderowaniu, natychmiast dokonaj selekcji aktywnego przystanku
+        evaluateCurrentStop();
       }
+    }
+
+    function parseCoords(coordsStr) {
+      if (!coordsStr) return null;
+      let parts = coordsStr.split(',');
+      if (parts.length === 2) {
+        let lat = parseFloat(parts[0].trim());
+        let lng = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      }
+      return null;
+    }
+
+    // Hybrydowy asystent wyboru aktywnego przystanku (Czas + GPS + Odległość)
+    function evaluateCurrentStop() {
+      if (validStops.length === 0) return;
+
+      const now = new Date();
+      let bestIndex = 0;
+      let minDiff = Infinity;
+
+      // KROK 1: Dobieranie chronologiczne z rozkładu (porównanie godzin)
+      validStops.forEach((stop, index) => {
+        let stopDate = new Date();
+        let [h, m] = stop.time.split(':');
+        stopDate.setHours(parseInt(h), parseInt(m), 0, 0);
+
+        // Interesują nas przystanki, których czas jeszcze nie minął drastycznie (np. do 10 min po czasie odjazdu)
+        let diff = stopDate - now;
+        if (diff > -600000 && diff < minDiff) {
+          minDiff = diff;
+          bestIndex = index;
+        }
+      });
+
+      // KROK 2: Walidacja odległościowa GPS (jeśli sygnał jest dostępny)
+      if (currentCoords) {
+        let closestIndexByGps = -1;
+        let minDistance = 300; // metrów (promień detekcji zbliżania się)
+
+        validStops.forEach((stop, index) => {
+          if (stop.latLng) {
+            let dist = calculateDistance(currentCoords.lat, currentCoords.lng, stop.latLng.lat, stop.latLng.lng);
+            if (dist < minDistance) {
+              minDistance = dist;
+              closestIndexByGps = index;
+            }
+          }
+        });
+
+        // Jeśli fizycznie jesteśmy blisko jakiegoś przystanku z trasy, on wygrywa priorytet
+        if (closestIndexByGps !== -1) {
+          bestIndex = closestIndexByGps;
+        }
+      }
+
+      // Wizualne nadanie klasy aktywnego podświetlenia
+      validStops.forEach((_, index) => {
+        const card = document.getElementById(`stop-card-${index}`);
+        if (card) {
+          if (index === bestIndex) {
+            card.classList.add("active-stop");
+          } else {
+            card.classList.remove("active-stop");
+          }
+        }
+      });
+
+      // KROK 3: Wywołanie Live ETA za pomocą Distance Matrix API (tylko dla aktywnego przystanku)
+      if (currentCoords && googleMapsApiKey && validStops[bestIndex] && validStops[bestIndex].coords) {
+        fetchLiveETA(bestIndex);
+      }
+    }
+
+    // Funkcja licząca odległość w linii prostej (Haversine)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // metry
+      const phi1 = lat1 * Math.PI/180;
+      const phi2 = lat2 * Math.PI/180;
+      const deltaPhi = (lat2-lat1) * Math.PI/180;
+      const deltaLambda = (lon2-lon1) * Math.PI/180;
+
+      const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+                Math.cos(phi1) * Math.cos(phi2) *
+                Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+      return R * c; // w metrach
+    }
+
+    // Pobieranie rzeczywistego czasu dojazdu z uwzględnieniem korków
+    function fetchLiveETA(stopIndex) {
+      const stop = validStops[stopIndex];
+      const badge = document.getElementById(`eta-${stopIndex}`);
+      if (!badge) return;
+
+      badge.style.display = "inline-block";
+
+      const origin = `${currentCoords.lat},${currentCoords.lng}`;
+      const destination = stop.coords;
+      
+      // Wykorzystujemy JSONP / serwer proxy Cors, ponieważ wywołania klienta Google API mogą podlegać CORS
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(
+        `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destination}&mode=driving&departure_time=now&key=${googleMapsApiKey}`
+      )}`;
+
+      fetch(proxyUrl)
+        .then(response => response.json())
+        .then(wrapper => {
+          const data = JSON.parse(wrapper.contents);
+          if (data.status === "OK" && data.rows[0].elements[0].status === "OK") {
+            const element = data.rows[0].elements[0];
+            const durationInSeconds = element.duration_in_traffic ? element.duration_in_traffic.value : element.duration.value;
+            const durationText = element.duration_in_traffic ? element.duration_in_traffic.text : element.duration.text;
+
+            // Obliczanie planowanego spóźnienia
+            const now = new Date();
+            const arrivalTime = new Date(now.getTime() + durationInSeconds * 1000);
+
+            let stopDate = new Date();
+            let [h, m] = stop.time.split(':');
+            stopDate.setHours(parseInt(h), parseInt(m), 0, 0);
+
+            let delayMinutes = Math.round((arrivalTime - stopDate) / 60000);
+
+            if (delayMinutes > 2) {
+              badge.className = "eta-badge delayed";
+              badge.textContent = `Dojazd: ${durationText} (Spóźnienie: +${delayMinutes} min)`;
+            } else {
+              badge.className = "eta-badge on-time";
+              badge.textContent = `Dojazd: ${durationText} (Na czas)`;
+            }
+          } else {
+            badge.textContent = "Brak danych ETA";
+          }
+        })
+        .catch(() => {
+          badge.textContent = "Błąd ETA";
+        });
     }
 
     async function toggleWakeLock() {
@@ -533,7 +758,7 @@
     }
     
     function closePasswordModal() { 
-      document.getElementById("adminPassword").value = ""; 
+      document.getElementById("adminPassword").value = "";
       document.getElementById("passwordModal").style.display = "none";
     }
     
