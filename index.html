@@ -11,8 +11,8 @@
       --accent: #00ffcc;
       --text: #ffffff;
       --text-muted: #aaaaaa;
-      --bulb-on: #ffcc00; /* Jaskrawy żółty dla włączonej żarówki */
-      --bulb-off: #aaaaaa; /* Szary dla wyłączonej żarówki */
+      --bulb-on: #ffcc00; 
+      --bulb-off: #aaaaaa; 
     }
     body {
       background-color: var(--bg-color);
@@ -22,7 +22,6 @@
       padding: 15px;
     }
     
-    /* Wyśrodkowany nagłówek z zachowaniem stref bocznych */
     .header-container {
       display: flex;
       justify-content: space-between;
@@ -40,16 +39,14 @@
       flex-grow: 1;
     }
     
-    /* Przyciski funkcyjne w nagłówku */
     .icon-btn {
       background: none;
       border: none;
-      font-size: 20px;
       cursor: pointer;
       padding: 5px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       font-weight: bold;
       -webkit-tap-highlight-color: transparent;
       outline: none;
@@ -60,18 +57,29 @@
       border: none !important;
     }
     
-    /* Style stanów żarówki */
-    .wake-lock-on {
-      color: var(--bulb-on) !important;
+    /* Kontrola wyglądu wektorowej żarówki i tekstu */
+    .wake-lock-off svg {
+      fill: var(--bulb-off) !important;
+      filter: none !important;
     }
-    .wake-lock-off {
+    .wake-lock-off .status-txt {
       color: var(--bulb-off) !important;
     }
+    
+    .wake-lock-on svg {
+      fill: var(--bulb-on) !important;
+      /* Efekt rozświetlenia żarówki */
+      filter: drop-shadow(0px 0px 8px var(--bulb-on)) drop-shadow(0px 0px 3px #ffffff) !important;
+    }
+    .wake-lock-on .status-txt {
+      color: var(--bulb-on) !important;
+    }
+    
     .gear-icon { 
       color: var(--text-muted); 
+      font-size: 20px;
     }
 
-    /* Formularze wyboru */
     .form-group {
       max-width: 500px;
       margin: 0 auto 15px auto;
@@ -111,7 +119,6 @@
       cursor: not-allowed;
     }
 
-    /* Górna belka informacyjna aktywnego kursu */
     .info-bar {
       max-width: 500px;
       margin: 0 auto 15px auto;
@@ -137,7 +144,6 @@
       font-size: 14px;
     }
 
-    /* Karty przystankowe */
     #schedule-container {
       max-width: 500px;
       margin: 20px auto;
@@ -169,7 +175,6 @@
       border: 1px solid var(--accent);
     }
 
-    /* Okno panelu admina */
     .modal {
       display: none;
       position: fixed;
@@ -201,7 +206,10 @@
 
   <div class="header-container">
     <button id="wakeLockBtn" class="icon-btn wake-lock-off" onclick="toggleWakeLock()">
-      <span>💡</span><span id="wakeLockStatus" style="font-size: 11px;">EKRAN</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" style="transition: all 0.3s ease;">
+        <path d="M12 2C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2 19c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-1h4v1zm-3-3h2v1h-2v-1z"/>
+      </svg>
+      <span class="status-txt" style="font-size: 11px; transition: color 0.3s ease;">EKRAN: <span id="wakeLockStatus">OFF</span></span>
     </button>
     <h1>Portal Kierowcy</h1>
     <button class="icon-btn gear-icon" onclick="openPasswordModal()">⚙️</button>
@@ -242,15 +250,14 @@
 
   <script>
     // === TUTAJ WKLEJ SWÓJ LINK Z GOOGLE APPS SCRIPT (Z KOŃCÓWKĄ /exec) ===
-    const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
+    const API_URL = "TUTAJ_WKLEJ_SWOJ_LINK_Z_GAS";
 
     let headers = [];
     let rawData = [];
 
-    // Pobranie bazy danych z GAS za pomocą klasycznego fetch (Pod GitHuba)
     document.addEventListener("DOMContentLoaded", function() {
-      if (API_URL === "TUTAJ_WKLEJ_SWOJ_LINK_Z_GAS") {
-        alert("Błąd: Wklej swój aktualny adres URL z GAS w linii 158 kodu pliku index.html!");
+      if (API_URL === "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec") {
+        alert("Błąd: Wklej swój aktualny adres URL z GAS w linii 161 kodu pliku index.html!");
         return;
       }
 
@@ -261,8 +268,8 @@
             alert("Błąd bazy danych: " + data.error);
             return;
           }
-          headers = data[0]; // Pierwszy wiersz to nagłówki kolumn
-          rawData = data.slice(1); // Reszta to rekordy tras i przystanków
+          headers = data[0]; 
+          rawData = data.slice(1); 
           populateRoutes();
         })
         .catch(err => {
@@ -271,14 +278,13 @@
         });
     });
 
-    // Filtrowanie unikalnych nazw tras z Kolumny A (indeks 0)
     function populateRoutes() {
       const routeSelect = document.getElementById("routeSelect");
       routeSelect.innerHTML = '<option value="">-- Wybierz trasę --</option>';
       
       let routes = [];
       rawData.forEach(row => {
-        let routeName = row[0]; // Kolumna A
+        let routeName = row[0]; 
         if (routeName && !routes.includes(routeName)) {
           routes.push(routeName);
         }
@@ -292,7 +298,6 @@
       });
     }
 
-    // Wybór trasy aktywuje godziny przypisane wyłącznie do niej (Szukanie od kolumny E/indeks 4 wzwyż)
     function onRouteChanged() {
       const selectedRoute = document.getElementById("routeSelect").value;
       const hourSelect = document.getElementById("hourSelect");
@@ -313,11 +318,9 @@
 
       rawData.forEach(row => {
         if (row[0] === selectedRoute) {
-          // Godziny zaczynają się od kolumny E (indeks 4) do końca wiersza
           for (let colIdx = 4; colIdx < row.length; colIdx++) {
             let cellValue = row[colIdx];
             let hourHeader = headers[colIdx];
-            // Akceptujemy tylko niepuste komórki bez kresek
             if (cellValue && cellValue.trim() !== "" && cellValue.trim() !== "-" && hourHeader) {
               activeHours.add(hourHeader.trim());
             }
@@ -325,7 +328,6 @@
         }
       });
 
-      // Sortowanie chronologiczne godzin kursów
       let sortedHours = Array.from(activeHours).sort();
 
       sortedHours.forEach(h => {
@@ -341,7 +343,6 @@
       document.getElementById("showBtn").disabled = !hourSelect;
     }
 
-    // Przełączenie interfejsu w czysty widok jazdy (Ukrywanie filtrów)
     function showScheduleView() {
       const selectedRoute = document.getElementById("routeSelect").value;
       const selectedHour = document.getElementById("hourSelect").value;
@@ -354,18 +355,15 @@
       renderSchedule(selectedRoute, selectedHour);
     }
 
-    // Przywrócenie widoku formularza
     function showFilterView() {
       document.getElementById("schedule-view").style.display = "none";
       document.getElementById("filter-box").style.display = "block";
     }
 
-    // Dynamiczne rysowanie rozkładu jazdy dla wybranego kursu
     function renderSchedule(selectedRoute, selectedHour) {
       const container = document.getElementById("schedule-container");
       container.innerHTML = "";
 
-      // Znajdujemy dokładny numer kolumny w arkuszu odpowiadający wybranej godzinie
       let hourColumnIndex = headers.findIndex(h => h && h.trim() === selectedHour.trim());
 
       if (hourColumnIndex === -1) {
@@ -377,13 +375,11 @@
         if (row[0] === selectedRoute) {
           let stopTime = row[hourColumnIndex];
           
-          // Sprawdzamy czy dany przystanek realizuje kurs o tej godzinie
           if (stopTime && stopTime.trim() !== "" && stopTime.trim() !== "-") {
-            const stopName = row[1]; // Kolumna B - Nazwa przystanku
-            let mapUrl = row[3];    // Kolumna D - Gotowy link wielopunktowy
-            const coords = row[2];  // Kolumna C - Koordynaty zapasowe
+            const stopName = row[1]; 
+            let mapUrl = row[3];    
+            const coords = row[2];  
 
-            // Jeśli brakuje gotowego linku, generujemy szpilkę z koordynatów w kolumnie C
             if ((!mapUrl || mapUrl.trim() === "") && coords && coords.trim() !== "") {
               mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords.trim())}`;
             }
@@ -407,29 +403,32 @@
       }
     }
 
-    // Obsługa Wake Lock z dynamiczną kontrolą kolorów żarówki (Szary / Żółty)
+    // Dynamiczny Wake Lock z obsługą stanów wektora SVG i tekstu (ON/OFF)
     let wakeLock = null;
     async function toggleWakeLock() {
       const btn = document.getElementById("wakeLockBtn");
+      const statusText = document.getElementById("wakeLockStatus");
+      
       if ('wakeLock' in navigator) {
         try {
           if (!wakeLock) {
             wakeLock = await navigator.wakeLock.request('screen');
-            btn.className = "icon-btn wake-lock-on"; // Zmiana koloru na żółty w CSS
+            btn.className = "icon-btn wake-lock-on"; 
+            statusText.textContent = "ON";
           } else {
             await wakeLock.release();
             wakeLock = null;
-            btn.className = "icon-btn wake-lock-off"; // Powrót do szarego w CSS
+            btn.className = "icon-btn wake-lock-off"; 
+            statusText.textContent = "OFF";
           }
         } catch (err) {
-          console.log("Wake Lock nie wystartował: ", err.message);
+          console.log("Wake Lock błąd: ", err.message);
         }
       } else {
         alert("Twoje urządzenie lub przeglądarka nie obsługują blokady wygaszania ekranu.");
       }
     }
 
-    // Obsługa hasła administratora przez zapytanie fetch URL
     function openPasswordModal() { document.getElementById("passwordModal").style.display = "flex"; }
     function closePasswordModal() { document.getElementById("passwordModal").style.display = "none"; }
     
