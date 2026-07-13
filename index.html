@@ -83,6 +83,20 @@
         button:hover {
             background-color: #b3e62e;
         }
+        .back-btn {
+            background-color: #444;
+            color: #fff;
+            padding: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            width: 100%;
+            border: 1px solid #555;
+            cursor: pointer;
+        }
+        .back-btn:hover {
+            background-color: #555;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -121,6 +135,17 @@
             color: #888;
             margin-top: 5px;
         }
+        .route-info-header {
+            background-color: #262626;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ccff33;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+        }
     </style>
 </head>
 <body>
@@ -134,7 +159,7 @@
     </h1>
     <div id="status" class="status-msg">Pobieranie danych...</div>
 
-    <div class="filter-box">
+    <div id="selectionScreen" class="filter-box">
         <label for="routeSelect">WYBIERZ TRASĘ:</label>
         <select id="routeSelect" onchange="updateHours()">
             <option value="">-- Wybierz linię --</option>
@@ -148,20 +173,26 @@
         <button onclick="showSchedule()">POKAŻ HARMONOGRAM</button>
     </div>
 
-    <table id="scheduleTable" style="display: none;">
-        <thead>
-            <tr>
-                <th style="width: 25%;">Godzina</th>
-                <th style="width: 55%;">Przystanek</th>
-                <th style="width: 20%;">Mapa</th>
-            </tr>
-        </thead>
-        <tbody id="scheduleTableBody"></tbody>
-    </table>
+    <div id="scheduleScreen" style="display: none;">
+        <button class="back-btn" onclick="backToSelection()"><i class="fas fa-arrow-left"></i> ZMIEŃ KURS / POWRÓT</button>
+        
+        <div id="currentRouteInfo" class="route-info-header"></div>
+
+        <table id="scheduleTable">
+            <thead>
+                <tr>
+                    <th style="width: 25%;">Godzina</th>
+                    <th style="width: 55%;">Przystanek</th>
+                    <th style="width: 20%;">Mapa</th>
+                </tr>
+            </thead>
+            <tbody id="scheduleTableBody"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-    // TUTAJ WKLEJ SWÓJ ADRES URL Z GOOGLE APPS SCRIPT (Z KOŃCÓWKĄ /exec)
+    // ZAKTUALIZOWANY LINK URL Z TWOJEGO WIADOMOŚCI
     const API_URL = "https://script.google.com/macros/s/AKfycbwL9cS6_hCokdTYd9L2OiA6WdHywGvyOFVd-rgde6MGYeHgKRSLaHLn3iXYaGwVCf-C/exec";
 
     // Definicja nagłówków godzinowych w Twoim arkuszu (od kolumny E w prawo)
@@ -170,16 +201,13 @@
     let globalDb = [];
     let wakeLock = null;
 
-    // Pobieranie danych z API Google Sheets po załadowaniu strony
     window.addEventListener('DOMContentLoaded', loadData);
 
     async function loadData() {
         const statusDiv = document.getElementById('status');
         try {
-            // Zapobieganie cache za pomocą timestampa (?t=...)
             const response = await fetch(`${API_URL}?t=${Date.now()}`);
             globalDb = await response.json();
-            
             statusDiv.innerText = "Dane pobrane pomyślnie";
             populateRoutes();
         } catch (error) {
@@ -188,13 +216,11 @@
         }
     }
 
-    // Wyciąganie unikalnych tras z kolumny A (row[0])
     function populateRoutes() {
         const routeSelect = document.getElementById('routeSelect');
         const unikalneTrasy = new Set();
 
         globalDb.forEach((row, index) => {
-            // Ignorujemy nagłówek (wiersz 1) i puste rekordy
             if (index > 0 && row[0] && row[0].toString().trim() !== '' && row[0].toString().trim().toUpperCase() !== 'TRASA') {
                 unikalneTrasy.add(row[0].toString().trim());
             }
@@ -208,7 +234,6 @@
         });
     }
 
-    // Aktualizacja listy dostępnych godzin dla wybranej trasy
     function updateHours() {
         const routeSelect = document.getElementById('routeSelect').value;
         const timeSelect = document.getElementById('timeSelect');
@@ -220,13 +245,12 @@
             return;
         }
 
-        // Dla wybranej trasy sprawdzamy, czy w którejkolwiek kolumnie godzinowej (od indeksu 4 wzwyż) są przypisane kursy
         const aktywneGodziny = new Set();
         
         globalDb.forEach((row, index) => {
             if (index > 0 && row[0] && row[0].toString().trim() === routeSelect) {
                 godzinyKolumn.forEach((godzina, gIdx) => {
-                    const colIndex = 4 + gIdx; // Godziny w arkuszu zaczynają się od kolumny E (indeks 4)
+                    const colIndex = 4 + gIdx; 
                     if (row[colIndex] && row[colIndex].toString().trim() !== '' && row[colIndex].toString().trim() !== '-') {
                         aktywneGodziny.add(godzina);
                     }
@@ -234,7 +258,6 @@
             }
         });
 
-        // Sortujemy i wrzucamy godziny do selecta
         godzinyKolumn.forEach(godzina => {
             if (aktywneGodziny.has(godzina)) {
                 const option = document.createElement('option');
@@ -245,23 +268,23 @@
         });
     }
 
-    // Generowanie i filtrowanie końcowego harmonogramu przystanków
     function showSchedule() {
         const routeSelect = document.getElementById('routeSelect').value;
         const timeSelect = document.getElementById('timeSelect').value;
         const tableBody = document.getElementById('scheduleTableBody');
-        const table = document.getElementById('scheduleTable');
+        const selectionScreen = document.getElementById('selectionScreen');
+        const scheduleScreen = document.getElementById('scheduleScreen');
+        const currentRouteInfo = document.getElementById('currentRouteInfo');
         
         tableBody.innerHTML = '';
 
         if (!routeSelect || !timeSelect) {
-            table.style.display = 'none';
+            alert('Wybierz trasę oraz godzinę przed pokazaniem rozkładu.');
             return;
         }
 
         const colIndex = 4 + godzinyKolumn.indexOf(timeSelect);
 
-        // Filtrujemy wiersze, które należą do trasy i mają wpisaną godzinę w wybranej kolumnie
         const filteredRows = globalDb.filter((row, index) => {
             if (index === 0) return false;
             const isRoute = row[0] && row[0].toString().trim() === routeSelect;
@@ -271,40 +294,40 @@
 
         if (filteredRows.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Brak przystanków dla tego kursu</td></tr>';
-            table.style.display = 'table';
-            return;
+        } else {
+            filteredRows.forEach(row => {
+                const godzinaOdjazdu = row[colIndex].toString().trim();
+                const nazwaPrzystanku = row[1] ? row[1].toString().trim() : 'Nieznany przystanek';
+                
+                let linkDoMapy = '';
+                if (row[3] && row[3].toString().includes('http')) {
+                    linkDoMapy = row[3].toString().trim();
+                } else if (row[2] && row[2].toString().trim() !== '' && row[2].toString().includes(',')) {
+                    linkDoMapy = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row[2].toString().trim())}`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${godzinaOdjazdu}</b></td>
+                    <td>${nazwaPrzystanku}</td>
+                    <td>
+                        ${linkDoMapy ? `<a href="${linkDoMapy}" target="_blank" class="map-btn"><i class="fas fa-map-marker-alt"></i> MAPA</a>` : `<span class="no-map">-</span>`}
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
         }
 
-        filteredRows.forEach(row => {
-            const godzinaOdjazdu = row[colIndex].toString().trim();
-            const nazwaPrzystanku = row[1] ? row[1].toString().trim() : 'Nieznany przystanek';
-            
-            // Logika linku do mapy:
-            // Najpierw sprawdzamy, czy w kolumnie D (row[3]) jest pełna funkcja/link wyznaczający trasę
-            let linkDoMapy = '';
-            if (row[3] && row[3].toString().includes('http')) {
-                linkDoMapy = row[3].toString().trim();
-            } 
-            // Jeśli nie ma linku w D, a są współrzędne w kolumnie C (row[2]), generujemy link automatycznie
-            else if (row[2] && row[2].toString().trim() !== '' && row[2].toString().includes(',')) {
-                linkDoMapy = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row[2].toString().trim())}`;
-            }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><b>${godzinaOdjazdu}</b></td>
-                <td>${nazwaPrzystanku}</td>
-                <td>
-                    ${linkDoMapy ? `<a href="${linkDoMapy}" target="_blank" class="map-btn"><i class="fas fa-map-marker-alt"></i> MAPA</a>` : `<span class="no-map">-</span>`}
-                </td>
-            `;
-            tableBody.appendChild(tr);
-        });
-
-        table.style.display = 'table';
+        currentRouteInfo.innerHTML = `<i class="fas fa-bus"></i> ${routeSelect} &nbsp;&nbsp; <i class="fas fa-clock"></i> Kurs: ${timeSelect}`;
+        selectionScreen.style.display = 'none';
+        scheduleScreen.style.display = 'block';
     }
 
-    // Funkcja Screen Wake Lock API (Żarówka)
+    function backToSelection() {
+        document.getElementById('selectionScreen').style.display = 'block';
+        document.getElementById('scheduleScreen').style.display = 'none';
+    }
+
     async function toggleWakeLock() {
         const btn = document.getElementById('wakeLockBtn');
         if (!wakeLock) {
